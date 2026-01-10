@@ -3,3 +3,4 @@ session Thirty_Three = Fishers_Inequality +
   theories
     Thirty_Three_Miniatures_Root
     Miniature_Two
+    Miniature_Three
