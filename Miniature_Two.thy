@@ -25,25 +25,27 @@ definition fib_sequences :: "real sequence set" where
 fun add_sequences :: "'a::plus sequence \<Rightarrow> 'a sequence \<Rightarrow> 'a sequence" where
   "add_sequences f g = (\<lambda>n. f n + g n)"
 
-fun scale_sequences :: "real \<Rightarrow> real sequence \<Rightarrow> real sequence" where
+fun scale_sequences :: "[real, real sequence] \<Rightarrow> real sequence" where
   "scale_sequences x f = (\<lambda>n. x * (f n))"
 
-text \<open>
-
-Broken because modules are weird:
+typ "(real, nat \<Rightarrow> real, 'm) module_scheme"
 
 definition fib_space :: "(real, real sequence) module" where
   "fib_space = 
-    \<lparr> carrier = (UNIV::real set), mult = (*), one = 1, zero = 0, add = (+),
-    module.smult = scale_sequences \<rparr>"
-
-
-lemma "vectorspace reals \<lparr> carrier = (UNIV::real set), mult = (*), one = 1, zero = 0, add = (+),
+    \<lparr> carrier = fib_sequences, 
+    mult = undefined, 
+    one = undefined,
+    zero = (\<lambda>n::nat. 0), 
+    add = (\<lambda> (f::real sequence) g. (\<lambda>n. (f n) + (g n))),  
     module.smult = scale_sequences \<rparr>"
 
 interpretation sequence_space: vectorspace reals fib_space
-  sorry
-
-\<close>
+proof (unfold vectorspace_def, safe)
+  show "Module.module reals fib_space"
+    sorry
+next
+  show "field reals"
+    sorry             
+qed
 
 end
