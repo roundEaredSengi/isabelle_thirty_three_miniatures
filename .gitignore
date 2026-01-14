@@ -1,1 +1,7 @@
-*.tex~
+*.thy~
+*.aux
+*.bcf
+*.out
+*.log
+*.synctex.gz
+*.run.xml
