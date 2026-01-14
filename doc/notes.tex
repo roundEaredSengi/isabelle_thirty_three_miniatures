@@ -1,0 +1,137 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+
+% graphics packages
+\usepackage{graphicx}
+\usepackage{svg}
+\usepackage{tikz}
+\usepackage{standalone}
+
+% math packages
+\usepackage{amsmath,amsfonts,amssymb,bbm}
+\usepackage{mathtools}
+\usepackage{ebproof}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% ref packages
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{listings}
+\usepackage[style=authoryear,backend=biber,natbib=true,maxcitenames=1]{biblatex}
+
+% other packages
+\usepackage{todonotes}
+\usepackage{tabularx}
+\usepackage{comment}
+\usepackage{stackengine}
+\usepackage{csquotes}
+
+
+% isabelle snippets, see https://astahfrom.github.io/cartouches/
+
+\usepackage{isabelle, isabellesym}
+\isabellestyle{it} % optional
+\newcommand{\SNIPTEXT}[1]{#1} % remove #1 to ignore text commands
+\newcommand{\SNIP}[2]{\expandafter\newcommand\csname snippet--#1\endcsname{#2}}
+\input{isa_snippets} % assuming the snippets are saved as snips.tex
+\setstackEOL{\\}
+\usetikzlibrary{positioning,quotes,calc,shapes.callouts}
+
+\def\isadelimtheory{}\def\endisadelimtheory{}
+\def\isatagtheory{}\def\endisatagtheory{}
+\def\isadelimML{}\def\endisadelimML{}
+\def\isadelimdocument{}\def\endisadelimdocument{}
+\def\isatagML{}\def\endisatagML{}
+\def\isatagdocument{}\def\endisatagdocument{}
+\def\isafoldML{}
+\def\isadelimproof{}\def\endisadelimproof{}
+\def\isatagproof{}\def\endisatagproof{}
+\def\isafoldproof{}
+
+\raggedbottom
+
+% \GetSnip{name} gets the snippet defined by `name' or produces a warning that it does not exist.
+\newcommand{\GetSnip}[1]{%
+	\ifcsname snippet--#1\endcsname%
+	\csname snippet--#1\endcsname%
+	\else%
+	\PackageWarning{snips}{Snippet ``#1'' is undefined.}%
+	\emph{Warning: Snippet ``#1'' is undefined.}%
+	\fi%
+}
+
+% \RawCartouche{name}{line}{n}: content of cartouche `n' on line `line' of snippet `name'
+\newcommand{\RawCartouche}[3]{\GetSnip{#1-#2-#3}}
+
+% \Cartouche{name}{line}{n}: enclosed cartouche `n' on line `line' of snippet `name'
+\newcommand{\Cartouche}[3]{%
+	{\isacartoucheopen}%
+	\RawCartouche{#1}{#2}{#3}%
+	{\isacartoucheclose}%
+}
+
+% \Snippet{name}: the full snippet `name'
+\newcommand{\Snippet}[1]{{%
+		\newcount\i
+		\i=0
+		\loop
+		\GetSnip{#1-\the\i}%
+		\advance \i 1
+		\ifcsname snippet--#1-\the\i\endcsname
+		\repeat
+}}
+
+% \SnippetPart{n}{m}{name}: the snippet `name' from line `n' to line `m' inclusive
+\newcommand{\SnippetPart}[3]{{%
+		\newcount\i
+		\i=#1
+		\loop
+		\ifnum \i=#2
+		\renewcommand{\isanewline}{}%
+		\fi
+		\GetSnip{#3-\the\i}%
+		\advance \i 1
+		\ifnum \i>#2 {}
+		\else \repeat
+}}
+
+
+\graphicspath{images/}
+
+% own commands
+
+\newcommand{\IsaLogo}{\includegraphics[scale=0.07]{images/isabelle.pdf} }%
+
+\begin{document}
+	
+	\title{Formalization of Thirty Three Miniatures}
+	\subtitle{Notes}
+	\titlerunning{Formalization of Thirty Three Miniatures}
+	
+	%
+	% If the paper title is too long for the running head, you can set
+	% an abbreviated paper title here
+	%
+	\author{foo}
+	%
+	\authorrunning{bar}
+	% First names are abbreviated in the running head.
+	% If there are more than two authors, 'et al.' is used.
+	%
+	\institute{foobar}
+	%
+	\maketitle              % typeset the header of the contribution      % typeset the header of the contribution
+	%
+	
+	\section{Isabelle Questions}
+	\begin{itemize}
+		\item Why does Abs$\_$TYP just behave sensibly outside of its domain?
+		\item What is a \enquote{qualified} lemma?
+	\end{itemize}
+	
+	\section{Isabelle Peculiarities}
+	
+	\section{Math Stuff}
+	
+\end{document}
