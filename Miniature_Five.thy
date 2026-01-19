@@ -23,8 +23,107 @@ instance proof
   show "equal_class.equal x y = (x = y)" unfolding equal_vec_def by auto
 qed
 
+lemma lists_of_finite_set:
+  fixes
+    n::nat
+  assumes
+    "finite (S::'a set)"
+  shows
+    "finite { l. length l = n \<and> set l \<subseteq> S}"
+proof(induction n)
+  case (Suc n)
+  then have "{xs::'a list. length xs = Suc n \<and> set xs \<subseteq> S} = (\<Union>x \<in> S. (#) x ` {xs. length xs = n \<and>  set xs \<subseteq> S})"
+    using length_Suc_conv by (auto simp: length_Suc_conv)
+  then show ?case using Suc assms by simp
+qed simp
+
+lemma map_finite:
+  assumes
+    "finite S"
+  shows
+    "finite {f x | x . x \<in> S \<and> P x}"
+  using assms by simp
+
 definition is_code :: "'a vec set \<Rightarrow> bool" where
-  "is_code C = (finite C \<and> card C > 1 \<and> (\<exists> n . \<forall> w \<in> C . dim_vec w = n))"
+  "is_code C \<equiv> \<exists> A::'a set . finite A \<and> card A > 1 \<and> (\<exists>! n . n > 0 \<and> C = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A})"
+
+lemma code_finite[simp]:
+  fixes
+    C :: "'a vec set"
+  assumes
+    "is_code C"
+  shows
+    "finite C"
+proof -
+  obtain A where A_prop:
+    "finite A"
+    "card A > 1"
+    "\<exists>! n . n > 0 \<and> C = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
+    using is_code_def assms by meson
+  then obtain a b where ab_props: "a \<in> A" "b \<in> A" "a \<noteq> b"
+    by (metis One_nat_def card_le_Suc0_iff_eq less_Suc_eq_le not_less_eq)
+
+  then obtain n where n_prop: "n > 0" "C = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
+    using A_prop by auto
+  then have C_def: "C = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
+    using is_code_def assms by force
+
+  moreover have "{ list_of_vec w | w . w \<in> C } \<subseteq> { l::'a list . length l = n \<and> set l \<subseteq> A}" using C_def set_list_of_vec by force
+  moreover have "finite { l::'a list . length l = n \<and> set l \<subseteq> A}" using lists_of_finite_set A_prop by presburger
+  ultimately have "finite { list_of_vec w | w . w \<in> C }" 
+    using finite_subset map_finite by fast
+  then have "finite { vec_of_list l | l . l \<in> { list_of_vec w | w . w \<in> C } }"
+    using map_finite by simp
+  moreover have "C = { vec_of_list (list_of_vec w) | w . w \<in> C}" by (simp add: vec_list)
+  then have "C = { vec_of_list l | l . l \<in> { list_of_vec w | w . w \<in> C } }" by auto
+  ultimately show ?thesis by argo
+qed
+
+lemma code_card_min[simp]:
+  assumes
+    "is_code C"
+  shows
+    "card C > 1"
+proof -
+  obtain A where A_prop:
+    "finite A"
+    "card A > 1"
+    "\<exists>! n . n > 0 \<and> C = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
+    using is_code_def assms by meson
+  then obtain a b where ab_props: "a \<in> A" "b \<in> A" "a \<noteq> b"
+    by (metis One_nat_def card_le_Suc0_iff_eq less_Suc_eq_le not_less_eq)
+
+  then obtain n where n_prop: "n > 0" "C = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
+    using A_prop by auto
+  then have C_def: "C = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
+    using is_code_def assms by force
+
+  define x where x_def: "x = vec n (\<lambda>i. a)"
+  then have x_len: "dim_vec x = n" by simp
+  moreover from x_def have "\<forall> i \<in> {0..<n} . x$i = a" by auto
+  then have "\<forall> i \<in> {0..<n} . x$i \<in> A" using ab_props by metis
+  then have "set\<^sub>v x \<subseteq> A" using vec_set_def[of x] x_len by auto
+  ultimately have "x \<in> C" using is_code_def assms C_def ab_props by blast
+
+  define y where y_def: "y = vec n (\<lambda>i. b)"
+  then have y_len: "dim_vec y = n" by simp
+  moreover from y_def have "\<forall> i \<in> {0..<n} . y$i = b" by auto
+  then have "\<forall> i \<in> {0..<n} . y$i \<in> A" using ab_props by metis
+  then have "set\<^sub>v y \<subseteq> A" using vec_set_def[of y] y_len by auto
+  ultimately have "y \<in> C" using is_code_def assms C_def ab_props by blast
+
+  have "dim_vec x \<ge> 1" using x_def n_prop by simp
+  have "dim_vec y \<ge> 1" using y_def n_prop by simp
+
+  have "a \<noteq> b" using ab_props by simp
+  then have "x$0 \<noteq> b" using x_def \<open>dim_vec x \<ge> 1\<close> by simp
+  then have "x$0 \<noteq> y$0" using y_def \<open>dim_vec y \<ge> 1\<close> by simp
+  then have "x \<noteq> y" by auto
+
+  show ?thesis using \<open>x \<in> C\<close> \<open>y \<in> C\<close> \<open>x \<noteq> y\<close>
+    by (metis Miniature_Five.code_finite One_nat_def assms card_le_Suc0_iff_eq less_or_eq_imp_le
+        linorder_less_linear)
+qed
 
 definition hamming_distance :: "'a vec \<Rightarrow> 'a vec \<Rightarrow> nat" where
   "hamming_distance a b = (if dim_vec a = dim_vec b then card {i \<in> {0..<dim_vec a} . (a $ i) \<noteq> (b $ i)} else  undefined)"
@@ -36,13 +135,6 @@ definition minimum_distance :: "'a vec set \<Rightarrow> nat" where
 
 definition corrects_errors :: "nat \<Rightarrow> 'a vec set \<Rightarrow> bool" where
   "corrects_errors t C \<equiv> if is_code C then \<forall> u\<in>C. card {v\<in>C . hamming_distance u v \<le> t} \<le> 1 else undefined"
-
-lemma map_finite:
-  assumes
-    "finite S"
-  shows
-    "finite {f x | x . x \<in> S \<and> P x}"
-  using assms by simp
   
 
 lemma minimum_distance_bounds:
@@ -73,20 +165,23 @@ lemma distances_nonempty:
   shows
     "{hamming_distance (fst p) (snd p) | p . p \<in> C \<times> C \<and> fst p \<noteq> snd p} \<noteq> {}"
 proof -
+
+  have dup_subset: "{(x, x) | x . x \<in> C} \<subseteq> C \<times> C" by auto
+  have dup_card: "card {(x, x) | x . x \<in> C} = card C"
+    by (simp add: Setcompr_eq_image card_image inj_on_convol_ident)
+
   have "{p \<in> C \<times> C . fst p \<noteq> snd p} = (C \<times> C) - {p \<in> C \<times> C . fst p = snd p}" using assms is_code_def by auto
   then have "card {p \<in> C \<times> C . fst p \<noteq> snd p} = card ((C \<times> C) - {p \<in> C \<times> C . fst p = snd p})" by presburger
-  also have "\<dots> = card (C \<times> C) - card {p \<in> C \<times> C . fst p = snd p}" using card_Diff_subset assms is_code_def
-    by (metis (no_types, lifting) finite_SigmaI mem_Collect_eq rev_finite_subset subsetI)
-  also have "\<dots> = card (C \<times> C) - card {(x, x) | x . x \<in> C}"
+  also have "\<dots> = card ((C \<times> C) - {(x, x) | x . x \<in> C})"
     by (metis (no_types, lifting) SigmaE SigmaI split_pairs)
-  also have "\<dots> = card (C \<times> C) - card C"
-    by (simp add: Setcompr_eq_image card_image inj_on_convol_ident)
+  also have "\<dots> = card (C \<times> C) - card C" using dup_subset dup_card assms code_finite card_Diff_subset finite_subset
+    by (metis (no_types, lifting) finite_SigmaI)
   also have "\<dots> = (card C) * (card C) - card C"
     by (metis card_cartesian_product)
   also have "\<dots> = (card C - 1) * (card C)"
     by (simp add: diff_mult_distrib)
   finally have "card {p \<in> C \<times> C . fst p \<noteq> snd p} = (card C - 1) * card C" by presburger
-  then have "card {p \<in> C \<times> C . fst p \<noteq> snd p} > (card C - 1) * 1" using assms is_code_def by auto
+  then have "card {p \<in> C \<times> C . fst p \<noteq> snd p} > (card C - 1) * 1" using assms code_card_min by auto
   then have "card {p \<in> C \<times> C . fst p \<noteq> snd p} > 0" using assms is_code_def by auto
   then have "{p \<in> C \<times> C . fst p \<noteq> snd p} \<noteq> {}" by fastforce
   
@@ -101,7 +196,7 @@ lemma distances_finite:
 proof -
   let ?distances = "{hamming_distance (fst p) (snd p) | p . p \<in> C \<times> C \<and> fst p \<noteq> snd p}"
 
-  have "finite (C \<times> C)" using assms is_code_def by blast
+  have "finite (C \<times> C)" using assms code_finite by blast
   then show ?thesis by (rule map_finite)
 qed
 
@@ -122,7 +217,87 @@ lemma hamming_interpol:
     "n \<in> {0..hamming_distance u v}"
   shows
     "\<exists> w \<in> C . hamming_distance u w = n \<and> hamming_distance w v = hamming_distance u v - n"
-  sorry (* Requires adjustment to is_code to be based on alphabet *)
+proof
+  define m where "m = dim_vec u"
+  then have m_prop: "\<forall> x \<in> C . dim_vec x = m" using assms is_code_def by auto
+  obtain A where A_prop: "\<forall> w \<in> C . set\<^sub>v w \<subseteq> A" using assms is_code_def by auto
+  let ?d = "hamming_distance u v"
+  let ?diff_idx = "{i \<in> {0..<m} . (u $ i) \<noteq> (v $ i)}"
+  have diff_card: "card ?diff_idx = ?d" using hamming_distance_def assms m_prop by auto
+
+  moreover have "n \<le> card ?diff_idx" using assms diff_card by auto
+  moreover have "finite ?diff_idx" by simp
+  ultimately obtain D where Diff_prop: "D \<subseteq> ?diff_idx" "card D = n" using obtain_subset_with_card_n by meson
+  let ?Ds = "{D . D \<subseteq> ?diff_idx \<and> card D = n}"
+
+  have Ds_nonempty: "?Ds \<noteq> {}" using Diff_prop by blast
+
+
+  define w where w_def: "w = (let D = (SOME D' . D' \<in> ?Ds) in vec m (\<lambda>i. if i \<in> D then v$i else u$i))"
+
+  have "set\<^sub>v w = {w $ i | i . i \<in> {..<dim_vec w}}"
+    using assms vec_set_def Setcompr_eq_image w_def by metis
+  moreover have "\<forall> i \<in> {0..<dim_vec w} . w$i \<in> A" sorry
+  then have "{w $ i | i . i \<in> {..<dim_vec w}} \<subseteq> A" by fastforce
+  ultimately have "set\<^sub>v w \<subseteq> A" by order
+  then show "w \<in> C" using C_def by simp
+
+
+  have d_uw: "hamming_distance u w = n" proof -
+    define D where D_prop: "D = (SOME D' . D' \<in> ?Ds)"
+
+    have "D \<in> ?Ds" using someI_ex Ds_nonempty some_in_eq D_prop by meson
+    then have "D \<subseteq> {0..<m}" using someI_ex Ds_nonempty some_in_eq by blast
+    then have "{0..<m} = {0..<m} - D \<union> D" by auto
+
+    then have "{i \<in> {0..<m} . (u $ i) \<noteq> (w $ i)} = {i \<in> ({0..<m} - D) . (u $ i) \<noteq> (w $ i)} \<union> {i \<in> D . (u $ i) \<noteq> (w $ i)}"
+      by blast
+    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> u$i} \<union> {i \<in> D . (u $ i) \<noteq> (w $ i)}" using w_def D_prop by auto
+    also have "\<dots> = {i \<in> D . (u $ i) \<noteq> (w $ i)}" by blast
+    also have "\<dots> = {i \<in> D . (u $ i) \<noteq> (v $ i)}" using w_def D_prop \<open>D \<in> ?Ds\<close> by auto
+    also have "\<dots> = {i \<in> D . True}" using \<open>D \<in> ?Ds\<close> by blast
+    also have "\<dots> = D" by simp
+    finally have "card {i \<in> {0..<m} . (u $ i) \<noteq> (w $ i)} = n" using \<open>D \<in> ?Ds\<close> by simp
+
+    moreover have "hamming_distance u w = card {i \<in> {0..<m} . (u $ i) \<noteq> (w $ i)}"
+      using hamming_distance_def assms m_prop w_def by simp
+
+    ultimately show ?thesis using D_prop w_def by argo
+  qed
+  moreover have "hamming_distance w v = ?d - n" proof -
+    define D where D_prop: "D = (SOME D' . D' \<in> ?Ds)"
+
+    have "D \<in> ?Ds" using someI_ex Ds_nonempty some_in_eq D_prop by meson
+
+
+    have "D \<subseteq> {0..<m}" using someI_ex Ds_nonempty some_in_eq \<open>D \<in> ?Ds\<close> by blast
+    then have "{0..<m} = {0..<m} - D \<union> D" by auto
+
+    then have "{i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = {i \<in> ({0..<m} - D) . (w $ i) \<noteq> (v $ i)} \<union> {i \<in> D . (w $ i) \<noteq> (v $ i)}"
+      by blast
+    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> v$i} \<union> {i \<in> D . w$i \<noteq> v$i}" using w_def D_prop by auto
+    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> v$i} \<union> {i \<in> D . v$i \<noteq> v$i}" using w_def D_prop \<open>D \<in> ?Ds\<close> by auto
+    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> v$i}" by blast
+    also have "\<dots> =  {i \<in> {0..<m} . u$i = v$i \<and> u$i \<noteq> v$i} \<union> {i \<in> (?diff_idx - D) . u$i \<noteq> v$i}"
+      using \<open>D \<in> ?Ds\<close> by blast
+    also have "\<dots> = {i \<in> (?diff_idx - D) . u$i \<noteq> v$i}" by simp
+    also have "\<dots> = ?diff_idx - D" by auto
+    finally have "card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = card (?diff_idx - D)" using \<open>D \<in> ?Ds\<close> by presburger
+    moreover have "D \<subseteq> ?diff_idx" using \<open>D \<in> ?Ds\<close> by simp
+    moreover have "finite D" using \<open>D \<in> ?Ds\<close> \<open>D \<subseteq> {0..<m}\<close> finite_subset by blast
+    ultimately have "card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = card ?diff_idx - card D"
+      using card_Diff_subset by auto
+    then have "card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = ?d - n" using diff_card \<open>D \<in> ?Ds\<close> by auto
+
+    moreover have "hamming_distance w v = card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)}"
+      using hamming_distance_def assms m_prop w_def by simp
+
+    ultimately show ?thesis using D_prop w_def by argo
+  qed
+  ultimately show "hamming_distance u w = n \<and> hamming_distance w v = ?d - n" by fast
+
+qed
+  
 
 theorem min_distance_ecc:
   fixes
