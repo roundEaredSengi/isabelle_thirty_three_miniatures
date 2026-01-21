@@ -207,7 +207,20 @@ lemma hamming_symm[simp]:
     "v \<in> C"
   shows
     "hamming_distance u v = hamming_distance v u"
-  sorry
+proof -
+  have "(if True then card {n \<in> {0..<dim_vec u}. v $ n \<noteq> u $ n} else undefined) = (if True then card {n \<in> {0..<dim_vec u}. u $ n \<noteq> v $ n} else undefined)"
+    by metis
+  then show ?thesis
+    by (simp add: hamming_distance_def)
+qed
+
+lemma elem_in_vec_set:
+  assumes
+    "i \<in> {0..<dim_vec v}"
+  shows
+    "v$i \<in> set\<^sub>v v"
+  using assms
+  by (simp add: vec_set_def)
 
 lemma hamming_interpol:
   assumes
@@ -218,9 +231,24 @@ lemma hamming_interpol:
   shows
     "\<exists> w \<in> C . hamming_distance u w = n \<and> hamming_distance w v = hamming_distance u v - n"
 proof
-  define m where "m = dim_vec u"
-  then have m_prop: "\<forall> x \<in> C . dim_vec x = m" using assms is_code_def by auto
-  obtain A where A_prop: "\<forall> w \<in> C . set\<^sub>v w \<subseteq> A" using assms is_code_def by auto
+  obtain A where A_prop: 
+    "finite A"
+    "card A > 1"
+    "(\<exists>!n. n > 0 \<and> C = {w. dim_vec w = n \<and> set\<^sub>v w \<subseteq> A})"
+    using assms is_code_def by meson
+
+  define ms where ms_def: "ms = {n. n > 0 \<and> C = {w. dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}}"
+  then have ms_nonempty: "ms \<noteq> {}" using A_prop by blast
+  define m' where "m' = (SOME m . m \<in> ms)"
+  then have "m' \<in> ms" using ms_nonempty assms some_in_eq by metis
+  then have m'_prop: "\<forall> x \<in> C . dim_vec x = m'" "m' > 0" using assms is_code_def ms_def by auto
+
+  define m where m_def: "m = dim_vec u"
+  then have "m = m'" using m'_prop assms by metis
+  then have m_prop: "\<forall> x \<in> C . dim_vec x = m" "m > 0" using m'_prop by auto
+
+  from \<open>m = m'\<close> \<open>m' \<in> ms\<close> have C_def: "C = {w. dim_vec w = m \<and> set\<^sub>v w \<subseteq> A}" using ms_def by simp
+
   let ?d = "hamming_distance u v"
   let ?diff_idx = "{i \<in> {0..<m} . (u $ i) \<noteq> (v $ i)}"
   have diff_card: "card ?diff_idx = ?d" using hamming_distance_def assms m_prop by auto
@@ -235,12 +263,16 @@ proof
 
   define w where w_def: "w = (let D = (SOME D' . D' \<in> ?Ds) in vec m (\<lambda>i. if i \<in> D then v$i else u$i))"
 
+  have u_elem_A: "\<And> i . i \<in> {0..<m} \<Longrightarrow> u$i \<in> A" using m_prop elem_in_vec_set C_def \<open>u \<in> C\<close> by blast
+  have v_elem_A: "\<And> i . i \<in> {0..<m} \<Longrightarrow> v$i \<in> A" using m_prop elem_in_vec_set C_def \<open>v \<in> C\<close> by blast
+
   have "set\<^sub>v w = {w $ i | i . i \<in> {..<dim_vec w}}"
     using assms vec_set_def Setcompr_eq_image w_def by metis
-  moreover have "\<forall> i \<in> {0..<dim_vec w} . w$i \<in> A" sorry
-  then have "{w $ i | i . i \<in> {..<dim_vec w}} \<subseteq> A" by fastforce
-  ultimately have "set\<^sub>v w \<subseteq> A" by order
-  then show "w \<in> C" using C_def by simp
+  moreover have "\<forall> i \<in> {0..<m} . w$i \<in> {v$i, u$i}" using w_def by auto
+  then have "\<forall> i \<in> {0..<m} . w$i \<in> A" using u_elem_A v_elem_A by auto
+  then have "{w $ i | i . i \<in> {..<m}} \<subseteq> A" by fastforce
+  ultimately have "set\<^sub>v w \<subseteq> A" using w_def by simp
+  then show "w \<in> C" using C_def w_def by auto
 
 
   have d_uw: "hamming_distance u w = n" proof -
