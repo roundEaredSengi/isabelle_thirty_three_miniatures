@@ -231,24 +231,16 @@ lemma hamming_interpol:
     "n \<in> {0..hamming_distance u v}"
   shows
     "\<exists> w \<in> C . hamming_distance u w = n \<and> hamming_distance w v = hamming_distance u v - n"
-proof
+proof -
   obtain A where A_prop: 
     "finite A"
     "card A > 1"
     "(\<exists>!n. n > 0 \<and> C = {w. dim_vec w = n \<and> set\<^sub>v w \<subseteq> A})"
     using assms is_code_def[of C] by meson
 
-  define ms where ms_def: "ms = {n. n > 0 \<and> C = {w. dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}}"
-  then have ms_nonempty: "ms \<noteq> {}" using A_prop by blast
-  define m' where "m' = (SOME m . m \<in> ms)"
-  then have "m' \<in> ms" using ms_nonempty assms some_in_eq by metis
-  then have m'_prop: "\<forall> x \<in> C . dim_vec x = m'" "m' > 0" using assms is_code_def ms_def by auto
-
-  define m where m_def: "m = dim_vec u"
-  then have "m = m'" using m'_prop assms by metis
-  then have m_prop: "\<forall> x \<in> C . dim_vec x = m" "m > 0" using m'_prop by auto
-
-  from \<open>m = m'\<close> \<open>m' \<in> ms\<close> have C_def: "C = {w. dim_vec w = m \<and> set\<^sub>v w \<subseteq> A}" using ms_def by simp
+  obtain m where m_def: "m > 0" "C = {w. dim_vec w = m \<and> set\<^sub>v w \<subseteq> A}" using A_prop by blast
+  then have m_prop: "\<forall> x \<in> C . dim_vec x = m" "m > 0" using assms is_code_def by auto
+  then have C_def: "C = {w. dim_vec w = m \<and> set\<^sub>v w \<subseteq> A}" using m_prop m_def by order
 
   let ?d = "hamming_distance u v"
   let ?diff_idx = "{i \<in> {0..<m} . (u $ i) \<noteq> (v $ i)}"
@@ -256,13 +248,10 @@ proof
 
   moreover have "n \<le> card ?diff_idx" using assms diff_card by auto
   moreover have "finite ?diff_idx" by simp
-  ultimately obtain D where Diff_prop: "D \<subseteq> ?diff_idx" "card D = n" using obtain_subset_with_card_n by meson
-  let ?Ds = "{D . D \<subseteq> ?diff_idx \<and> card D = n}"
+  ultimately obtain D where Diff_prop: "D \<subseteq> ?diff_idx" "card D = n"
+    using obtain_subset_with_card_n by meson
 
-  have Ds_nonempty: "?Ds \<noteq> {}" using Diff_prop by blast
-
-
-  define w where w_def: "w = (let D = (SOME D' . D' \<in> ?Ds) in vec m (\<lambda>i. if i \<in> D then v$i else u$i))"
+  define w where w_def: "w = (let D = D in vec m (\<lambda>i. if i \<in> D then v$i else u$i))"
 
   have u_elem_A: "\<And> i . i \<in> {0..<m} \<Longrightarrow> u$i \<in> A" using m_prop elem_in_vec_set C_def \<open>u \<in> C\<close> by blast
   have v_elem_A: "\<And> i . i \<in> {0..<m} \<Longrightarrow> v$i \<in> A" using m_prop elem_in_vec_set C_def \<open>v \<in> C\<close> by blast
@@ -273,61 +262,54 @@ proof
   then have "\<forall> i \<in> {0..<m} . w$i \<in> A" using u_elem_A v_elem_A by auto
   then have "{w $ i | i . i \<in> {..<m}} \<subseteq> A" by fastforce
   ultimately have "set\<^sub>v w \<subseteq> A" using w_def by simp
-  then show "w \<in> C" using C_def w_def by auto
+  then have in_C: "w \<in> C" using C_def w_def by auto
 
 
   have d_uw: "hamming_distance u w = n" proof -
-    define D where D_prop: "D = (SOME D' . D' \<in> ?Ds)"
-
-    have "D \<in> ?Ds" using someI_ex Ds_nonempty some_in_eq D_prop by meson
-    then have "D \<subseteq> {0..<m}" using someI_ex Ds_nonempty some_in_eq by blast
+    have "D \<subseteq> {0..<m}" using someI_ex Diff_prop some_in_eq by fast
     then have "{0..<m} = {0..<m} - D \<union> D" by auto
 
     then have "{i \<in> {0..<m} . (u $ i) \<noteq> (w $ i)} = {i \<in> ({0..<m} - D) . (u $ i) \<noteq> (w $ i)} \<union> {i \<in> D . (u $ i) \<noteq> (w $ i)}"
       by blast
-    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> u$i} \<union> {i \<in> D . (u $ i) \<noteq> (w $ i)}" using w_def D_prop by auto
+    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> u$i} \<union> {i \<in> D . (u $ i) \<noteq> (w $ i)}" using w_def Diff_prop by auto
     also have "\<dots> = {i \<in> D . (u $ i) \<noteq> (w $ i)}" by blast
-    also have "\<dots> = {i \<in> D . (u $ i) \<noteq> (v $ i)}" using w_def D_prop \<open>D \<in> ?Ds\<close> by auto
-    also have "\<dots> = {i \<in> D . True}" using \<open>D \<in> ?Ds\<close> by blast
+    also have "\<dots> = {i \<in> D . (u $ i) \<noteq> (v $ i)}" using w_def Diff_prop by auto
+    also have "\<dots> = {i \<in> D . True}" using Diff_prop by blast
     also have "\<dots> = D" by simp
-    finally have "card {i \<in> {0..<m} . (u $ i) \<noteq> (w $ i)} = n" using \<open>D \<in> ?Ds\<close> by simp
+    finally have "card {i \<in> {0..<m} . (u $ i) \<noteq> (w $ i)} = n" using Diff_prop by simp
 
     moreover have "hamming_distance u w = card {i \<in> {0..<m} . (u $ i) \<noteq> (w $ i)}"
       using hamming_distance_def[of u w] assms m_prop w_def by simp
 
-    ultimately show ?thesis using D_prop w_def by argo
+    ultimately show ?thesis using w_def by argo
   qed
   moreover have "hamming_distance w v = ?d - n" proof -
-    define D where D_prop: "D = (SOME D' . D' \<in> ?Ds)"
-
-    have "D \<in> ?Ds" using someI_ex Ds_nonempty some_in_eq D_prop by meson
-
-
-    have "D \<subseteq> {0..<m}" using someI_ex Ds_nonempty some_in_eq \<open>D \<in> ?Ds\<close> by blast
+    have "D \<subseteq> {0..<m}" using someI_ex Diff_prop some_in_eq by fast
     then have "{0..<m} = {0..<m} - D \<union> D" by auto
 
     then have "{i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = {i \<in> ({0..<m} - D) . (w $ i) \<noteq> (v $ i)} \<union> {i \<in> D . (w $ i) \<noteq> (v $ i)}"
       by blast
-    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> v$i} \<union> {i \<in> D . w$i \<noteq> v$i}" using w_def D_prop by auto
-    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> v$i} \<union> {i \<in> D . v$i \<noteq> v$i}" using w_def D_prop \<open>D \<in> ?Ds\<close> by auto
+    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> v$i} \<union> {i \<in> D . w$i \<noteq> v$i}" using w_def Diff_prop by auto
+    also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> v$i} \<union> {i \<in> D . v$i \<noteq> v$i}" using w_def Diff_prop by auto
     also have "\<dots> = {i\<in>({0..<m}-D). u$i \<noteq> v$i}" by blast
     also have "\<dots> =  {i \<in> {0..<m} . u$i = v$i \<and> u$i \<noteq> v$i} \<union> {i \<in> (?diff_idx - D) . u$i \<noteq> v$i}"
-      using \<open>D \<in> ?Ds\<close> by blast
+      using Diff_prop by blast
     also have "\<dots> = {i \<in> (?diff_idx - D) . u$i \<noteq> v$i}" by simp
     also have "\<dots> = ?diff_idx - D" by auto
-    finally have "card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = card (?diff_idx - D)" using \<open>D \<in> ?Ds\<close> by presburger
-    moreover have "D \<subseteq> ?diff_idx" using \<open>D \<in> ?Ds\<close> by simp
-    moreover have "finite D" using \<open>D \<in> ?Ds\<close> \<open>D \<subseteq> {0..<m}\<close> finite_subset by blast
+    finally have "card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = card (?diff_idx - D)" using Diff_prop by presburger
+    moreover have "D \<subseteq> ?diff_idx" using Diff_prop by simp
+    moreover have "finite D" using Diff_prop \<open>D \<subseteq> {0..<m}\<close> finite_subset by blast
     ultimately have "card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = card ?diff_idx - card D"
       using card_Diff_subset by auto
-    then have "card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = ?d - n" using diff_card \<open>D \<in> ?Ds\<close> by auto
+    then have "card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = ?d - n" using diff_card Diff_prop by auto
 
     moreover have "hamming_distance w v = card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)}"
       using hamming_distance_def[of w v] assms m_prop w_def by simp
-    ultimately show ?thesis using D_prop w_def by argo
+    ultimately show ?thesis using w_def by argo
   qed
-  ultimately show "hamming_distance u w = n \<and> hamming_distance w v = ?d - n" by fast
+  ultimately have distances: "hamming_distance u w = n \<and> hamming_distance w v = ?d - n" by fast
 
+  from in_C distances show ?thesis by auto 
 qed
   
 
