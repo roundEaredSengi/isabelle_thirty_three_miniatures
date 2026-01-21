@@ -22,6 +22,7 @@ instance proof
   fix x y :: "'a::equal vec"
   show "equal_class.equal x y = (x = y)" unfolding equal_vec_def by auto
 qed
+end
 
 lemma lists_of_finite_set:
   fixes
@@ -58,8 +59,8 @@ proof -
   obtain A where A_prop:
     "finite A"
     "card A > 1"
-    "\<exists>! n . n > 0 \<and> C = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
-    using is_code_def assms by meson
+    "\<exists>! n . n > 0 \<and> C = {w . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
+    using is_code_def[of C] assms by meson
   then obtain a b where ab_props: "a \<in> A" "b \<in> A" "a \<noteq> b"
     by (metis One_nat_def card_le_Suc0_iff_eq less_Suc_eq_le not_less_eq)
 
@@ -69,7 +70,7 @@ proof -
     using is_code_def assms by force
 
   moreover have "{ list_of_vec w | w . w \<in> C } \<subseteq> { l::'a list . length l = n \<and> set l \<subseteq> A}" using C_def set_list_of_vec by force
-  moreover have "finite { l::'a list . length l = n \<and> set l \<subseteq> A}" using lists_of_finite_set A_prop by presburger
+  moreover have "finite { l::'a list . length l = n \<and> set l \<subseteq> A}" using lists_of_finite_set[of A] A_prop by presburger
   ultimately have "finite { list_of_vec w | w . w \<in> C }" 
     using finite_subset map_finite by fast
   then have "finite { vec_of_list l | l . l \<in> { list_of_vec w | w . w \<in> C } }"
@@ -80,6 +81,8 @@ proof -
 qed
 
 lemma code_card_min[simp]:
+  fixes
+    C :: "'a vec set"
   assumes
     "is_code C"
   shows
@@ -89,7 +92,7 @@ proof -
     "finite A"
     "card A > 1"
     "\<exists>! n . n > 0 \<and> C = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
-    using is_code_def assms by meson
+    using is_code_def[of C] assms by meson
   then obtain a b where ab_props: "a \<in> A" "b \<in> A" "a \<noteq> b"
     by (metis One_nat_def card_le_Suc0_iff_eq less_Suc_eq_le not_less_eq)
 
@@ -128,20 +131,18 @@ qed
 definition hamming_distance :: "'a vec \<Rightarrow> 'a vec \<Rightarrow> nat" where
   "hamming_distance a b = (if dim_vec a = dim_vec b then card {i \<in> {0..<dim_vec a} . (a $ i) \<noteq> (b $ i)} else  undefined)"
 
-(*value "hamming_distance (vec_of_list [1::gf2,1,1]) (vec_of_list [1::gf2,0,1])" (*Breaks with (equal) vec :: equal instance*)*)
 
 definition minimum_distance :: "'a vec set \<Rightarrow> nat" where
   "minimum_distance C = (if is_code C then Min {hamming_distance (fst p) (snd p) | p . p \<in> C \<times> C \<and> fst p \<noteq> snd p}  else undefined)"
+
+value "hamming_distance (vec_of_list [1::gf2,1,1]) (vec_of_list [1::gf2,0,1])"
+term "minimum_distance {vec_of_list [1::gf2,1,1], vec_of_list [0,0,0]}"
 
 definition corrects_errors :: "nat \<Rightarrow> 'a vec set \<Rightarrow> bool" where
   "corrects_errors t C \<equiv> if is_code C then \<forall> u\<in>C. card {v\<in>C . hamming_distance u v \<le> t} \<le> 1 else undefined"
   
 
 lemma minimum_distance_bounds:
-  fixes
-    C :: "('a vec set)" and
-    u :: "'a vec" and
-    v :: "'a vec"
   assumes
     "is_code C" and
     "u \<in> C" and
@@ -152,9 +153,9 @@ lemma minimum_distance_bounds:
 proof -
   let ?distances = "{hamming_distance (fst p) (snd p) | p . p \<in> C \<times> C \<and> fst p \<noteq> snd p}"
   have "finite (C \<times> C)" using assms is_code_def by simp
-  then have "finite ?distances" using map_finite[of _ "\<lambda>p . hamming_distance (fst p) (snd p)"]
+  then have "finite ?distances" using map_finite[of "C \<times> C" "\<lambda>p . hamming_distance (fst p) (snd p)"]
     by presburger
-  moreover have "minimum_distance C = Min ?distances" using assms minimum_distance_def by presburger
+  moreover have "minimum_distance C = Min ?distances" using assms minimum_distance_def[of C] by presburger
   moreover have "hamming_distance u v \<in> ?distances" using assms by auto
   ultimately show ?thesis by simp
 qed
@@ -235,7 +236,7 @@ proof
     "finite A"
     "card A > 1"
     "(\<exists>!n. n > 0 \<and> C = {w. dim_vec w = n \<and> set\<^sub>v w \<subseteq> A})"
-    using assms is_code_def by meson
+    using assms is_code_def[of C] by meson
 
   define ms where ms_def: "ms = {n. n > 0 \<and> C = {w. dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}}"
   then have ms_nonempty: "ms \<noteq> {}" using A_prop by blast
@@ -251,7 +252,7 @@ proof
 
   let ?d = "hamming_distance u v"
   let ?diff_idx = "{i \<in> {0..<m} . (u $ i) \<noteq> (v $ i)}"
-  have diff_card: "card ?diff_idx = ?d" using hamming_distance_def assms m_prop by auto
+  have diff_card: "card ?diff_idx = ?d" using hamming_distance_def[of u v] assms m_prop by auto
 
   moreover have "n \<le> card ?diff_idx" using assms diff_card by auto
   moreover have "finite ?diff_idx" by simp
@@ -292,7 +293,7 @@ proof
     finally have "card {i \<in> {0..<m} . (u $ i) \<noteq> (w $ i)} = n" using \<open>D \<in> ?Ds\<close> by simp
 
     moreover have "hamming_distance u w = card {i \<in> {0..<m} . (u $ i) \<noteq> (w $ i)}"
-      using hamming_distance_def assms m_prop w_def by simp
+      using hamming_distance_def[of u w] assms m_prop w_def by simp
 
     ultimately show ?thesis using D_prop w_def by argo
   qed
@@ -322,8 +323,7 @@ proof
     then have "card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)} = ?d - n" using diff_card \<open>D \<in> ?Ds\<close> by auto
 
     moreover have "hamming_distance w v = card {i \<in> {0..<m} . (w $ i) \<noteq> (v $ i)}"
-      using hamming_distance_def assms m_prop w_def by simp
-
+      using hamming_distance_def[of w v] assms m_prop w_def by simp
     ultimately show ?thesis using D_prop w_def by argo
   qed
   ultimately show "hamming_distance u w = n \<and> hamming_distance w v = ?d - n" by fast
@@ -333,7 +333,6 @@ qed
 
 theorem min_distance_ecc:
   fixes
-    C :: "'a vec set" and
     t :: nat
   assumes "is_code C"
   shows "corrects_errors t C = (minimum_distance C \<ge> 2 * t + 1)"
@@ -345,10 +344,10 @@ proof
     assume ecc: "corrects_errors t C"
     assume "\<not> (minimum_distance C \<ge> 2 * t + 1)"
     then have "minimum_distance C < 2 * t + 1" by linarith
-    then have dist: "Min ?distances < 2 * t + 1" using minimum_distance_def assms is_code_def by algebra
+    then have dist: "Min ?distances < 2 * t + 1" using minimum_distance_def[of C] assms is_code_def by algebra
     
     have "finite ?distances" using distances_finite assms by simp
-    moreover have "?distances \<noteq> {}" using distances_nonempty assms by simp
+    moreover have "?distances \<noteq> {}" using distances_nonempty[of C] assms by simp
     ultimately have "Min ?distances \<in> ?distances" using linorder_class.Min_in[OF \<open>finite ?distances\<close> \<open>?distances \<noteq> {}\<close>] by argo
 
     then have "\<exists> p \<in> {p \<in> C \<times> C . fst p \<noteq> snd p}. hamming_distance (fst p) (snd p) = Min ?distances" by fastforce
@@ -374,7 +373,7 @@ proof
     then have "1 < card {x \<in> C. hamming_distance w x \<le> t}" using \<open>u \<noteq> v\<close> by auto
 
     moreover have "\<forall>u\<in>C. card {v \<in> C. hamming_distance u v \<le> t} \<le> 1"
-      using ecc corrects_errors_def assms by algebra
+      using ecc corrects_errors_def[of t C] assms by algebra
 
     ultimately show "False" using ecc corrects_errors_def \<open>w \<in> C\<close> by auto
   qed
@@ -384,11 +383,11 @@ next
   moreover have "\<forall> u\<in>C. card {v\<in>C . hamming_distance u v \<le> t} \<le> 1" proof
     fix u
     assume u_elem: "u \<in> C"
-    let ?base = "{v \<in> C. local.hamming_distance u v \<le> t}"
+    let ?base = "{v \<in> C. hamming_distance u v \<le> t}"
     have "\<And> v . v \<in> C \<Longrightarrow> hamming_distance u v \<le> t = (u = v)" proof
       fix v
       assume "u = v"
-      then show "hamming_distance u v \<le> t" using hamming_distance_def by simp
+      then show "hamming_distance u v \<le> t" using hamming_distance_def[of u v] by simp
     next
       fix v
       assume assms': "v \<in> C" "hamming_distance u v \<le> t"
@@ -403,7 +402,7 @@ next
     finally show "card ?base \<le> 1" using u_elem by simp
   qed
   moreover have "corrects_errors t C = (\<forall> u\<in>C. card {v\<in>C . hamming_distance u v \<le> t} \<le> 1)" 
-    using assms corrects_errors_def by presburger
+    using assms corrects_errors_def[of t C] by presburger
   ultimately show "corrects_errors t C" by simp
 qed
 
