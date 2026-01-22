@@ -407,4 +407,139 @@ next
 qed
 end
 
+locale linear_code = code +
+  fixes
+    "F"
+    "V"
+  assumes
+    "field F"
+    "carrier F = A"
+    "vectorspace F V"
+    "carrier V = C"
+begin
+
+definition word_addition :: "'a vec \<Rightarrow> 'a vec \<Rightarrow> 'a vec" where
+  "word_addition u v = vec n (\<lambda>i. (add F) (u$i) (v$i))"
+
+definition word_scaling :: "'a \<Rightarrow> 'a vec \<Rightarrow> 'a vec" where
+  "word_scaling s w = vec n (\<lambda>i. (mult F) s (w$i))"
+
+definition W: "W = \<lparr> 
+  carrier = words,
+  mult = undefined,
+  one = undefined,
+  zero = vec n (\<lambda>i. zero F),
+  add = word_addition,
+  module.smult = word_scaling
+\<rparr>"
+
+lemma F_field: "field F" using linear_code_def linear_code_axioms_def linear_code_axioms by blast
+lemma F_ring: "ring F" using field.is_ring[OF F_field] .
+lemma F_monoid: "Group.monoid F" using F_ring ring_def by blast
+
+lemma F_carrier_A[simp]: "carrier F = A" using linear_code_def linear_code_axioms_def linear_code_axioms by metis
+
+lemma word_abelian_group: "abelian_group W" sorry
+
+lemma words_module: "module F W" proof (unfold module_def module_axioms_def, safe)
+  show "cring F" using F_field field_def domain_def by metis
+next
+  show "abelian_group W" using word_abelian_group .
+next
+  fix a
+  assume "a \<in> carrier F"
+  then have "a \<in> A" by simp
+
+  fix x
+  assume "x \<in> carrier W"
+  then have "x \<in> words" unfolding W by simp
+
+  let ?scaled = "((module.smult W) a x)"
+
+  have mon_F: "monoid F" using F_field field_def domain_def cring_def comm_monoid_def by metis
+  have word_chars_in_A: "\<forall>i \<in> {0..<n}. x$i \<in> A" using \<open>x \<in> words\<close> words vec_set_def by fastforce
+
+  have len: "dim_vec ?scaled = n" unfolding W word_scaling_def by simp
+  moreover have "\<forall> i\<in>{0..<n}. ?scaled$i = ((mult F) a (x$i))" unfolding W word_scaling_def by simp
+  then have "\<forall> i\<in>{0..<n}. ?scaled$i \<in> A"
+    using F_carrier_A word_chars_in_A monoid.m_closed[OF mon_F  \<open>a \<in> carrier F\<close>] by metis
+  then have "set\<^sub>v ?scaled \<subseteq> A" using vec_set_def[of ?scaled] len by auto
+  ultimately show "?scaled \<in> carrier W" unfolding W words by simp
+next
+  fix a b x
+  assume in_carriers: "a \<in> carrier F" "b \<in> carrier F" "x \<in> carrier W"
+
+  have "x \<in> words" using in_carriers unfolding W by simp
+  from this in_carriers have x_elem_carrier: "\<And>i . i \<in> {0..<n} \<Longrightarrow> x$i \<in> carrier F"
+    using F_carrier_A words elem_in_vec_set
+    by fast
+
+
+  from in_carriers have "(a \<oplus>\<^bsub>F\<^esub> b) \<odot>\<^bsub>W\<^esub> x = vec n (\<lambda>i. if i \<in> {0..<n} then (a \<oplus>\<^bsub>F\<^esub> b) \<otimes>\<^bsub>F\<^esub> (x$i) else undefined)"
+    unfolding W word_scaling_def by auto
+  then have "(a \<oplus>\<^bsub>F\<^esub> b) \<odot>\<^bsub>W\<^esub> x = vec n (\<lambda>i. if i\<in>{0..<n} then (a \<otimes>\<^bsub>F\<^esub> (x$i)) \<oplus>\<^bsub>F\<^esub> (b \<otimes>\<^bsub>F\<^esub> (x$i)) else undefined)"
+    using F_ring ring_def[of F] ring_axioms_def[of F] in_carriers x_elem_carrier
+    by auto
+  then show "(a \<oplus>\<^bsub>F\<^esub> b) \<odot>\<^bsub>W\<^esub> x = a \<odot>\<^bsub>W\<^esub> x \<oplus>\<^bsub>W\<^esub> b \<odot>\<^bsub>W\<^esub> x"
+    unfolding W word_scaling_def word_addition_def by auto
+next
+  fix a x y
+  assume in_carriers: "a \<in> carrier F" "x \<in> carrier W" "y \<in> carrier W"
+
+  have "x \<in> words" using in_carriers unfolding W by simp
+  from this in_carriers have x_elem_carrier: "\<And>i . i \<in> {0..<n} \<Longrightarrow> x$i \<in> carrier F"
+    using F_carrier_A words elem_in_vec_set
+    by fast
+
+  have "y \<in> words" using in_carriers unfolding W by simp
+  from this in_carriers have y_elem_carrier: "\<And>i . i \<in> {0..<n} \<Longrightarrow> y$i \<in> carrier F"
+    using F_carrier_A words elem_in_vec_set
+    by fast
+
+  from in_carriers have "a \<odot>\<^bsub>W\<^esub> (x \<oplus>\<^bsub>W\<^esub> y) = vec n (\<lambda>i. if i \<in> {0..<n} then a \<otimes>\<^bsub>F\<^esub> ((x \<oplus>\<^bsub>W\<^esub> y)$i) else undefined)"
+    unfolding W word_scaling_def by auto
+  then have "a \<odot>\<^bsub>W\<^esub> (x \<oplus>\<^bsub>W\<^esub> y) = vec n (\<lambda>i. if i \<in> {0..<n} then a \<otimes>\<^bsub>F\<^esub> ((x$i) \<oplus>\<^bsub>F\<^esub> (y$i)) else undefined)"
+    unfolding W using word_addition_def by auto
+  then have "a \<odot>\<^bsub>W\<^esub> (x \<oplus>\<^bsub>W\<^esub> y) = vec n (\<lambda>i. if i\<in>{0..<n} then (a \<otimes>\<^bsub>F\<^esub> (x$i)) \<oplus>\<^bsub>F\<^esub> (a \<otimes>\<^bsub>F\<^esub> (y$i)) else undefined)"
+    using F_ring ring_def[of F] ring_axioms_def[of F] in_carriers x_elem_carrier y_elem_carrier
+    by auto
+  then show "a \<odot>\<^bsub>W\<^esub> (x \<oplus>\<^bsub>W\<^esub> y) = a \<odot>\<^bsub>W\<^esub> x \<oplus>\<^bsub>W\<^esub> a \<odot>\<^bsub>W\<^esub> y"
+    unfolding W word_scaling_def word_addition_def by auto
+next
+  fix a b x
+  assume in_carriers: "a \<in> carrier F" "b \<in> carrier F" "x \<in> carrier W"
+
+  have "x \<in> words" using in_carriers unfolding W by simp
+  from this in_carriers have x_elem_carrier: "\<And>i . i \<in> {0..<n} \<Longrightarrow> x$i \<in> carrier F"
+    using F_carrier_A words elem_in_vec_set
+    by fast
+
+  from in_carriers have "(a \<otimes>\<^bsub>F\<^esub> b) \<odot>\<^bsub>W\<^esub> x = vec n (\<lambda>i. if i \<in> {0..<n} then (a \<otimes>\<^bsub>F\<^esub> b) \<otimes>\<^bsub>F\<^esub> (x$i) else undefined)"
+    unfolding W word_scaling_def by auto
+  then have "(a \<otimes>\<^bsub>F\<^esub> b) \<odot>\<^bsub>W\<^esub> x = vec n (\<lambda>i. if i \<in> {0..<n} then a \<otimes>\<^bsub>F\<^esub> (b \<otimes>\<^bsub>F\<^esub> (x$i)) else undefined)"
+    using F_monoid x_elem_carrier in_carriers monoid.m_assoc[of F] by auto
+  then have "(a \<otimes>\<^bsub>F\<^esub> b) \<odot>\<^bsub>W\<^esub> x = vec n (\<lambda>i. if i \<in> {0..<n} then a \<otimes>\<^bsub>F\<^esub> ((b \<odot>\<^bsub>W\<^esub> x)$i) else undefined)"
+    unfolding W using word_scaling_def by auto
+  then show "(a \<otimes>\<^bsub>F\<^esub> b) \<odot>\<^bsub>W\<^esub> x = a \<odot>\<^bsub>W\<^esub> (b \<odot>\<^bsub>W\<^esub> x)"
+    unfolding W using word_scaling_def by auto
+next
+  fix x
+  assume in_carrier: "x \<in> carrier W"
+  then have "x \<in> words" unfolding W by simp
+  then have x_elem_carrier: "\<And>i . i \<in> {0..<n} \<Longrightarrow> x$i \<in> carrier F"
+    using F_carrier_A words elem_in_vec_set
+    by fast
+  moreover have "\<one>\<^bsub>F\<^esub> \<odot>\<^bsub>W\<^esub> x = vec n (\<lambda>i. \<one>\<^bsub>F\<^esub> \<otimes>\<^bsub>F\<^esub> (x$i))"
+    unfolding W using word_scaling_def by simp
+  ultimately have "\<one>\<^bsub>F\<^esub> \<odot>\<^bsub>W\<^esub> x = vec n (\<lambda>i. (x$i))"
+    using monoid.l_one[OF F_monoid] by auto
+  then show "\<one>\<^bsub>F\<^esub> \<odot>\<^bsub>W\<^esub> x = x" using \<open>x \<in> words\<close> by fastforce
+qed
+    
+
+
+lemma words_vs: "vectorspace F W" using words_module vectorspace_def F_field by blast
+
+end
+
 end
