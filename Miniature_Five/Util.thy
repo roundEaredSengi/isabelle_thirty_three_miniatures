@@ -59,4 +59,86 @@ lemma distinct_vec_diff_index[simp]:
     "\<exists>i \<in> {0..<dim_vec x} . x$i \<noteq> y$i"
   using assms by auto
 
+
+lemmas (in vectorspace) additive_inverse = local.module.M.r_neg
+lemmas (in vectorspace) additive_inverse_closed = local.module.M.add.inv_closed
+
+lemma (in vectorspace) subspace_inverse_equal:
+  assumes
+    "subspace K W V"
+    "x \<in> W"
+  shows
+    "\<ominus>\<^bsub>V\<^esub> x = \<ominus>\<^bsub>vs W\<^esub> x"
+proof -
+  let ?WS = "vs W"
+  let ?WSA = "(add_monoid ?WS)"                
+
+  have "x \<in> carrier V"
+    using assms
+    unfolding subspace_def
+    using submodule.subset
+    by auto
+  then have "x \<in> carrier (add_monoid V)"
+    by auto
+
+  have "Units ?WSA = W"
+    using subspace_is_vs[OF assms(1)] carrier_vs_is_self[of W]
+    using vectorspace_def[of K ?WS]  module_def abelian_group_def abelian_group_axioms_def[of ?WS]
+    using comm_group_def
+    using group.Units_eq[of ?WSA]
+    by auto
+  then have "x \<in> Units ?WSA" using assms by presburger
+
+  let ?u = "\<ominus>\<^bsub>V\<^esub> x"
+  let ?v = "\<ominus>\<^bsub>?WS\<^esub> x"
+
+  have "\<zero>\<^bsub>V\<^esub> = \<zero>\<^bsub>?WS\<^esub>" by simp
+  also have "\<dots> = x \<oplus>\<^bsub>?WS\<^esub> ?v"
+    using vectorspace.additive_inverse subspace_is_vs carrier_vs_is_self assms
+    by metis
+  also have "\<dots> = x \<oplus>\<^bsub>V\<^esub> ?v" by simp
+  moreover have "?v \<in> carrier ?WS"
+    using assms subspace_is_vs carrier_vs_is_self vectorspace.additive_inverse_closed
+    by metis
+  then have "?v \<in> carrier V"
+    using assms subspace_def submodule.subset
+    by fastforce
+  moreover from calculation have "?v \<oplus>\<^bsub>V\<^esub> x = \<zero>\<^bsub>V\<^esub>"
+    using M.a_comm[OF \<open>x \<in> carrier V\<close>] by presburger
+  ultimately show "?u = ?v"
+    using M.add.inv_unique'[OF \<open>x \<in> carrier V\<close> \<open>?v \<in> carrier V\<close>]
+    unfolding a_inv_def
+    by argo
+qed
+
+lemma (in vectorspace) eq_equiv_diff_zero:
+  assumes
+    "u \<in> carrier V"
+    "v \<in> carrier V"
+    "u \<noteq> v"
+  shows
+    "(u \<ominus>\<^bsub>V\<^esub> v) \<noteq> \<zero>\<^bsub>V\<^esub>"
+proof (rule ccontr)
+  assume "\<not> u \<ominus>\<^bsub>V\<^esub> v \<noteq> \<zero>\<^bsub>V\<^esub>"
+  then have eq_z: "u \<oplus>\<^bsub>V\<^esub> (\<ominus>\<^bsub>V\<^esub> v) = \<zero>\<^bsub>V\<^esub>" unfolding a_minus_def by simp
+  then have "inv\<^bsub>add_monoid V\<^esub> (\<ominus>\<^bsub>V\<^esub> v) = u"
+    using M.add.inv_equality[OF eq_z] assms additive_inverse_closed
+    by simp
+  then have "inv\<^bsub>add_monoid V\<^esub> (inv\<^bsub>add_monoid V\<^esub> v) = u" using a_inv_def by metis
+  then have "v = u"
+    using M.add.inv_inv assms
+    by simp
+  then show "False" using assms by presburger
+qed
+
+lemma (in vectorspace) subtraction_closed:
+  assumes
+    "u \<in> carrier V"
+    "v \<in> carrier V"
+  shows
+    "u \<ominus>\<^bsub>V\<^esub> v \<in> carrier V"
+  unfolding a_minus_def
+  using assms M.add.inv_closed assms R.a_closed
+  by simp 
+
 end

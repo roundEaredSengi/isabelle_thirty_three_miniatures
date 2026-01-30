@@ -1,5 +1,5 @@
 theory InducedVectorspace
-  imports "../Thirty_Three_Miniatures_Root"
+  imports "../Thirty_Three_Miniatures_Root" Util
 begin
 
 locale induced_vs =
@@ -135,31 +135,78 @@ proof -
     using assms scaling_def addition_def by auto
 qed
 
-lemma addition_inv:
+
+definition induced_inv where "induced_inv v = vec n (\<lambda>i. \<ominus>\<^bsub>F\<^esub> (v$i))"
+
+lemma addition_inv_closed:
+  assumes
+    "v \<in> V"
+  shows
+    "induced_inv v \<in> V"
+proof (safe)
+  show dim: "dim_vec (induced_inv v) = n" using induced_inv_def by simp
+
+  fix x
+  assume "x \<in> set\<^sub>v (induced_inv v)"
+  then have "\<exists>i. i \<in> {0..<n} \<and> (induced_inv v)$i = x" using dim vec_set_def
+    by (metis imageE lessThan_atLeast0)
+  then obtain i where i_range: "i \<in> {0..<n}" and "(induced_inv v)$i = x" by metis
+  then have "x = \<ominus>\<^bsub>F\<^esub> (v$i)" unfolding induced_inv_def by simp
+  moreover have "v$i \<in> E" using vec_set_def assms i_range by simp
+  moreover have "group (add_monoid F)"
+    using ring_F
+    unfolding ring_def abelian_group_def abelian_group_axioms_def comm_group_def
+    by satx
+  ultimately show "x \<in> E"
+    unfolding a_inv_def
+    using group.inv_closed
+    by fastforce
+qed
+
+lemma addition_inv_eq:
+  assumes
+    "v \<in> V"
+  shows
+    "addition v (induced_inv v) = zero_vec"
+proof -
+  have inv_ex: "\<And> \<alpha>. \<alpha>\<in>E \<Longrightarrow> inv\<^bsub>add_monoid F\<^esub> \<alpha> \<in> E"
+    using abelian_group.a_inv_closed[OF ring.is_abelian_group[OF ring_F]] a_inv_def by metis
+
+  let ?u = "induced_inv v"
+
+  have dim: "dim_vec ?u = n" unfolding induced_inv_def by simp
+  moreover have "\<forall>i\<in>{0..<n}. (v$i) \<in> E" using assms v_elems by auto
+  then have "\<forall>i\<in>{0..<n}. inv\<^bsub>add_monoid F\<^esub> (v$i) \<in> E" using inv_ex by auto
+  then have "set\<^sub>v ?u \<subseteq> E"
+    using vec_set_def[of ?u] dim induced_inv_def
+    unfolding a_inv_def
+    by auto
+  ultimately have elem: "?u \<in> V" by simp
+  moreover have "addition v ?u = vec n (\<lambda>i. (v$i) \<oplus>\<^bsub>F\<^esub> (m_inv (add_monoid F) (v$i)))"
+    unfolding a_inv_def addition_def induced_inv_def by auto
+  then have "addition v ?u = vec n (\<lambda>i. (v$i) \<ominus>\<^bsub>F\<^esub> (v$i))"
+    using a_inv_def[of F] a_minus_def[of F] by presburger
+  then have "addition v ?u = vec n (\<lambda>i. \<zero>\<^bsub>F\<^esub>)"
+    using ring.r_right_minus_eq[OF ring_F] v_elems assms by auto
+  then show "addition v ?u = zero_vec" unfolding zero_vec_def .
+qed
+
+lemma addition_inv_ex:
   assumes
     "v \<in> V"
   shows
     "\<exists> u \<in> V . addition u v = zero_vec"
 proof -
-  have inv_ex: "\<And> \<alpha>. \<alpha>\<in>E \<Longrightarrow> inv\<^bsub>add_monoid F\<^esub> \<alpha> \<in> E"
-    using abelian_group.a_inv_closed[OF ring.is_abelian_group[OF ring_F]] a_inv_def by metis
 
-  define u where "u = vec n (\<lambda>i. inv\<^bsub>add_monoid F\<^esub> (v$i))"
+  let ?u = "induced_inv v"
 
-  have dim: "dim_vec u = n" unfolding u_def by simp
-  moreover have "\<forall>i\<in>{0..<n}. (v$i) \<in> E" using assms v_elems by auto
-  then have "\<forall>i\<in>{0..<n}. inv\<^bsub>add_monoid F\<^esub> (v$i) \<in> E" using inv_ex by auto
-  then have "set\<^sub>v u \<subseteq> E" using vec_set_def[of u] dim u_def by auto
-  ultimately have elem: "u \<in> V" by simp
-  moreover have "addition v u = vec n (\<lambda>i. (v$i) \<oplus>\<^bsub>F\<^esub> (m_inv (add_monoid F) (v$i)))"
-    unfolding addition_def u_def by auto
-  then have "addition v u = vec n (\<lambda>i. (v$i) \<ominus>\<^bsub>F\<^esub> (v$i))"
-    using a_inv_def[of F] a_minus_def[of F] by presburger
-  then have "addition v u = vec n (\<lambda>i. \<zero>\<^bsub>F\<^esub>)"
-    using ring.r_right_minus_eq[OF ring_F] v_elems assms by auto
-  then have "addition v u = zero_vec" unfolding zero_vec_def .
-  then have "addition u v = zero_vec" using assms addition_comm elem by algebra
-  ultimately show ?thesis by blast
+  have "addition v ?u = zero_vec" using addition_inv_eq using assms by blast
+  then have "addition ?u v = zero_vec" 
+    using addition_comm[OF assms] addition_inv_closed[OF assms]
+    by algebra
+  then show ?thesis
+    using addition_inv_closed[OF assms]
+    by auto
 qed
 
 lemma vector_sum_distr:
@@ -268,7 +315,7 @@ next
     assume "v \<in> carrier (add_monoid VS)"
     then have "v \<in> V" unfolding VS by simp
     moreover have "\<exists> u\<in>V  . addition u v = zero_vec \<and> addition v u = zero_vec" proof -
-      from \<open>v \<in> V\<close> obtain u where "u \<in> V" "addition u v = zero_vec" using addition_inv by blast
+      from \<open>v \<in> V\<close> obtain u where "u \<in> V" "addition u v = zero_vec" using addition_inv_ex by blast
       moreover from this have "addition v u = zero_vec" using \<open>v \<in> V\<close> addition_comm by simp
       ultimately show ?thesis by auto
     qed
@@ -310,6 +357,126 @@ next
   then have "x \<in> V" unfolding VS by simp
   then show "\<one>\<^bsub>F\<^esub> \<odot>\<^bsub>VS\<^esub> x = x" unfolding VS using scale_1_id by simp
 qed
+
+lemma additive_inverse[simp]:
+  assumes
+    "v \<in> V"
+  shows
+    "\<ominus>\<^bsub>VS\<^esub> v = induced_inv v"
+proof -
+  let ?u = "\<ominus>\<^bsub>VS\<^esub> v"
+  let ?w = "induced_inv v"
+
+  have "group (add_monoid VS)"
+    using vectorspace_VS
+    unfolding vectorspace_def module_def abelian_group_def
+    unfolding abelian_group_axioms_def comm_group_def
+    by satx
+  moreover from this have "monoid (add_monoid VS)" unfolding group_def
+    by satx
+  moreover have "v \<in> carrier VS" unfolding VS using assms by simp
+  moreover from calculation have "?u \<oplus>\<^bsub>VS\<^esub> v = \<zero>\<^bsub>VS\<^esub>"
+    unfolding a_inv_def
+    using group.l_inv[of "add_monoid VS" v]
+    by auto
+  moreover have "v \<oplus>\<^bsub>VS\<^esub> ?w = \<zero>\<^bsub>VS\<^esub>" 
+    using addition_inv_eq assms
+    unfolding VS
+    by simp
+  moreover from calculation have "?u \<in> carrier VS"
+    unfolding a_inv_def
+    using group.inv_closed[of "add_monoid VS" v]
+    by (simp add: VS)
+  moreover have "?w \<in> carrier VS"
+    using addition_inv_closed assms
+    unfolding VS
+    by auto
+  ultimately show ?thesis using monoid.inv_unique[of "add_monoid VS" ?u v ?w] assms by auto
+qed
+
+
+lemma elem_neq_dif_elem_nonzero:
+  assumes
+    "u \<in> V"
+    "v \<in> V"
+    "i \<in> {0..<n}"
+  shows
+    "(u$i \<noteq> v$i) = (\<zero>\<^bsub>VS\<^esub>$i \<noteq> (u \<ominus>\<^bsub>VS\<^esub> v)$i)"
+proof
+  assume assm: "u$i \<noteq> v$i"
+
+  show "\<zero>\<^bsub>VS\<^esub>$i \<noteq> (u \<ominus>\<^bsub>VS\<^esub> v)$i" proof (rule ccontr)
+    assume "\<not> \<zero>\<^bsub>VS\<^esub> $ i \<noteq> (u \<ominus>\<^bsub>VS\<^esub> v) $ i"
+    then have "\<zero>\<^bsub>F\<^esub> = (u \<ominus>\<^bsub>VS\<^esub> v) $ i"
+      unfolding VS
+      using zero_vec_def assms
+      by simp
+    also have "\<dots> = u$i \<oplus>\<^bsub>F\<^esub> (\<ominus>\<^bsub>VS\<^esub> v)$i"
+      unfolding a_minus_def addition_def VS
+      using assms
+      by simp
+    also have "\<dots> = u$i \<oplus>\<^bsub>F\<^esub> (\<ominus>\<^bsub>F\<^esub> (v$i))"
+      using additive_inverse[OF assms(2)]
+      unfolding induced_inv_def
+      using assms(3)
+      by fastforce
+    moreover have a_group: "group (add_monoid F)"
+      using ring_F
+      unfolding ring_def abelian_group_def abelian_group_axioms_def
+      unfolding comm_group_def
+      by satx
+    moreover have "u$i \<in> E" using assms vec_set_def by simp
+    moreover have v_elem: "v$i \<in> E" using assms vec_set_def by simp
+    moreover from calculation have "(\<ominus>\<^bsub>F\<^esub> (v$i)) \<in> E"
+      using group.inv_closed
+      unfolding a_inv_def
+      by fastforce
+    ultimately have "u$i = \<ominus>\<^bsub>F\<^esub> (\<ominus>\<^bsub>F\<^esub> (v$i))"
+      using group.inv_equality[of "add_monoid F" "u$i" "\<ominus>\<^bsub>F\<^esub> (v$i)"]
+      unfolding a_inv_def
+      by simp
+    then have "u$i = v$i"
+      using group.inv_inv[OF a_group] v_elem
+      unfolding a_inv_def
+      by simp
+    then show "False" using assm by satx
+  qed
+next
+  assume "\<zero>\<^bsub>VS\<^esub> $ i \<noteq> (u \<ominus>\<^bsub>VS\<^esub> v) $ i"
+  then have assm: "\<zero>\<^bsub>F\<^esub> \<noteq> (u \<ominus>\<^bsub>VS\<^esub> v)$i"
+    unfolding VS zero_vec_def
+    using assms
+    by simp
+  
+  show "u$i \<noteq> v$i" proof (rule ccontr)
+    assume "\<not> u $ i \<noteq> v $ i"
+    then have "u$i = v$i" by satx
+    moreover have "u$i \<in> E" using assms vec_set_def by simp
+    moreover have "v$i \<in> E" using assms vec_set_def by simp
+    moreover have a_group: "group (add_monoid F)"
+      using ring_F
+      unfolding ring_def abelian_group_def abelian_group_axioms_def
+      unfolding comm_group_def
+      by satx
+    ultimately have "\<zero>\<^bsub>F\<^esub> = u$i \<ominus>\<^bsub>F\<^esub> v$i"
+      unfolding a_minus_def a_inv_def
+      using group.r_inv
+      by fastforce
+    also have "\<dots> = u$i \<oplus>\<^bsub>F\<^esub> (induced_inv v)$i"
+      unfolding induced_inv_def a_minus_def
+      using assms additive_inverse
+      by auto
+    also have "\<dots> = u$i \<oplus>\<^bsub>F\<^esub> (\<ominus>\<^bsub>VS\<^esub> v)$i"
+      using additive_inverse assms
+      by presburger
+    also have "\<dots> = (u \<ominus>\<^bsub>VS\<^esub> v)$i"
+      unfolding VS a_minus_def
+      using addition_def assms
+      by simp
+    finally show "False" using assm by satx
+  qed
+qed
+
 end
 
 end
