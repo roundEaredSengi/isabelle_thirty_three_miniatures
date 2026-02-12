@@ -139,6 +139,6 @@ lemma (in vectorspace) subtraction_closed:
     "u \<ominus>\<^bsub>V\<^esub> v \<in> carrier V"
   unfolding a_minus_def
   using assms M.add.inv_closed assms R.a_closed
-  by simp 
+  by simp
 
 end

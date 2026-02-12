@@ -1,5 +1,5 @@
 theory InducedVectorspace
-  imports "../Thirty_Three_Miniatures_Root" Util
+  imports "../Thirty_Three_Miniatures_Root" Util CarriersetMatrix
 begin
 
 locale induced_vs =
@@ -476,6 +476,25 @@ next
     finally show "False" using assm by satx
   qed
 qed
+
+lemma induced_dim[simp]:
+  "vectorspace.dim F VS = n"
+  sorry
+
+
+definition orthogonal where
+  "orthogonal u v = (field.scalar_prod F u v = \<zero>\<^bsub>F\<^esub>)"
+
+end
+
+locale induced_subspace = subspace K W "induced_vs.VS K n" + induced_vs K n for K W n
+begin
+
+definition orthogonal_carrier where
+  "orthogonal_carrier = {v \<in> V . (\<forall>w \<in> W. orthogonal v w)}"
+
+lemma orthogonal_subspace: "subspace K orthogonal_carrier VS"
+  sorry
 
 end
 

@@ -38,6 +38,9 @@ lemma code_subspace: "subspace F C W" unfolding subspace_def using
     elem_vs
   unfolding submodule_def W induced_vs.VS[OF elem_vs]
   by auto
+lemma code_ind_subspace: "induced_subspace F C n"
+  using code_subspace w_vs induced_subspace_def[of F C n] elem_vs W
+  by metis
 
 abbreviation "CS" where "CS \<equiv> vectorspace.vs W C"
 corollary code_space: "vectorspace F CS"
