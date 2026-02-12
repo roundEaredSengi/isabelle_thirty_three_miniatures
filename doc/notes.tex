@@ -131,7 +131,38 @@
 	\end{itemize}
 	
 	\section{Isabelle Peculiarities}
+	\begin{itemize}
+		\item Algebra structures are defined twice (once as type class, once as locale)
+	\end{itemize}
 	
 	\section{Math Stuff}
+	\begin{itemize}
+		\item useful to realize implicit assumptions such as commutativity in a definition of sums
+	\end{itemize}
+	
+	\section{TODO: Potentially Interesting Talk Content}
+	\begin{itemize}
+		\item Partially done: Overview over LA/Algebra in Isabelle (mention the chaos of everything being defined twice)
+		\item Not done at all: Geometry reasoning in Isabelle
+		\item Not done at all: Automation of LA proof methods
+		\item Not done at all: Understand existing proof methods (argo is used a lot...?)
+		\item Not done at all: ML for ?thesis in subgoals
+	\end{itemize}
+	
+	\section{Talk Structure?}
+	\begin{enumerate}
+		\item Formalization content (general topic, interesting theorems)
+		\item Formalization tools (Isabelle/HOL, AFP theories)
+		\item Formalization struggles/observations
+		\begin{itemize}
+			\item Content: necessary care for detail, easier to see potential for generalization/find errors and lack of detail in proofs/...
+			\item Isabelle: (Algebra) structures defined in multiple ways in different theories, reproving the same claims in the same proof twice?, excessive unfolding, no schematic variables for subgoals, ... 
+		\end{itemize}
+		\item Isabelle adventures:
+		\begin{itemize}
+			\item Eisbach proof methods
+			\item Isabelle/ML?
+		\end{itemize}
+	\end{enumerate}
 	
 \end{document}
