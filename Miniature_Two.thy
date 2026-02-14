@@ -485,9 +485,6 @@ lemma fib_standard_basis_is_lin_indpt: "True" by simp
 
 lemma fib_standard_basis: "sequence_space.basis {seq_10, seq_01}"
 proof -
-  interpret mon: abelian_monoid fib_space
-    by (rule sequence_group.abelian_monoid_axioms)
-
   (* Linear Independence *)
   have subset: "{seq_10, seq_01} \<subseteq> carrier fib_space"
     unfolding fib_space_def
@@ -564,20 +561,24 @@ proof -
     "\<lambda>f. (\<lambda>g. if g = seq_01 then f 1 else f 0)"
   let ?phi' = 
     "\<lambda>f. (\<lambda>g. if g = seq_01 then f 1 \<odot>\<^bsub>fib_space\<^esub> g else f 0 \<odot>\<^bsub>fib_space\<^esub> g)"
-  have "\<forall>f \<in> carrier fib_space. ?phi' f seq_01 \<in> carrier fib_space" (* TODO cleanup *)
-    using sequence_space.vectorspace_axioms
-    unfolding vectorspace_def Module.module_def module_axioms_def fib_space_def reals_def fib_sequences_def
-    by (metis UNIV_I fib_sequences_def fib_space_def insertI1 partial_object.select_convs(1) seq_01)
-  moreover have "\<forall>f \<in> carrier fib_space. ?phi' f seq_10 \<in> carrier fib_space"
-        using sequence_space.vectorspace_axioms
-    unfolding vectorspace_def Module.module_def module_axioms_def fib_space_def reals_def fib_sequences_def
-    by (metis (no_types, lifting) UNIV_I fib_sequences_def insert_iff partial_object.select_convs(1) seq_10)
-  ultimately have func: "\<forall>f \<in> carrier fib_space. ?phi' f \<in> {seq_01, seq_10} \<rightarrow> carrier fib_space"
+  have "\<forall>f. \<forall>g. ?phi f g \<in> carrier reals"
+    unfolding reals_def
+    by simp
+  hence 
+    "\<forall>f. \<forall>g \<in> carrier fib_space. (\<lambda>g. ?phi f g \<odot>\<^bsub>fib_space\<^esub> g) g \<in> carrier fib_space" 
+    by blast
+  hence func_phi: 
+    "\<forall>f. \<forall>g \<in> {seq_10, seq_01}. 
+      (\<lambda>g. ?phi f g \<odot>\<^bsub>fib_space\<^esub> g) \<in> {seq_10, seq_01} \<rightarrow> carrier fib_space" 
     unfolding Pi_def
+    using subset
+    by blast
+  moreover have func_eq: 
+    "\<forall>f. \<forall>g \<in> {seq_10, seq_01}. ?phi' f g = (\<lambda>g. ?phi f g \<odot>\<^bsub>fib_space\<^esub> g) g"
     by simp
-  have func_eq: 
-    "\<forall>f. \<forall>g \<in> {seq_01, seq_10}. ?phi' f g = ?phi f g \<odot>\<^bsub>fib_space\<^esub> g"
-    by simp
+  ultimately have func_phi': 
+    "\<forall>f \<in> carrier fib_space. ?phi' f \<in> {seq_10, seq_01} \<rightarrow> carrier fib_space"
+    by auto
   have "\<forall>f \<in> carrier fib_space. f = f 0 \<odot>\<^bsub>fib_space\<^esub> seq_10 \<oplus>\<^bsub>fib_space\<^esub> f 1 \<odot>\<^bsub>fib_space\<^esub> seq_01"
     using seq_01_10_is_gen_set
     unfolding fib_space_def
@@ -590,17 +591,30 @@ proof -
     "\<forall>f \<in> carrier fib_space.
       (?phi f seq_10) \<odot>\<^bsub>fib_space\<^esub> seq_10 \<oplus>\<^bsub>fib_space\<^esub> (?phi f seq_01) \<odot>\<^bsub>fib_space\<^esub> seq_01
       = (\<Oplus>\<^bsub>fib_space\<^esub>v\<in>{seq_10, seq_01}. ?phi' f v)"
-    using func abelian_monoid.finsum_2_elts[
+    using func_phi' abelian_monoid.finsum_2_elts[
                 of fib_space seq_10 seq_01, 
                 OF sequence_group.abelian_monoid_axioms seq_01_10_is_fib_sequence(3)]
     by simp
   moreover have 
     "\<forall>f \<in> carrier fib_space. (\<Oplus>\<^bsub>fib_space\<^esub>g\<in>{seq_10, seq_01}. ?phi' f g)
-      = (\<Oplus>\<^bsub>fib_space\<^esub>v\<in>{seq_10, seq_01}. (\<lambda>v. ?phi f v \<odot>\<^bsub>fib_space\<^esub> v) v)"
-      using func func_eq abelian_monoid.finsum_eq[
-                              of fib_space "{seq_10, seq_01}" _ _, 
-                              OF sequence_group.abelian_monoid_axioms]
-      sorry
+      = (\<Oplus>\<^bsub>fib_space\<^esub>g\<in>{seq_10, seq_01}. (\<lambda>v. ?phi f v \<odot>\<^bsub>fib_space\<^esub> v) g)"
+  proof (safe, goal_cases)
+    case (1 f)
+    hence
+      "(\<lambda>g. ?phi f g \<odot>\<^bsub>fib_space\<^esub> g) \<in> {seq_10, seq_01} \<rightarrow> carrier fib_space"
+      using sequence_module.module_axioms seq_01_10_is_fib_sequence func_phi func_phi'
+      unfolding module_def module_axioms_def
+      by simp
+    moreover have "?phi' f \<in> {seq_10, seq_01} \<rightarrow> carrier fib_space"
+      using func_phi' 1
+      by simp
+    ultimately show ?case
+      using func_eq 
+            abelian_monoid.finsum_eq[
+              of fib_space "{seq_10, seq_01}" "?phi' f" "(\<lambda>g. ?phi f g \<odot>\<^bsub>fib_space\<^esub> g)",
+              OF sequence_group.abelian_monoid_axioms]
+      by simp
+  qed
   ultimately have
     "\<forall>f \<in> carrier fib_space. f = sequence_module.lincomb (?phi f) {seq_10, seq_01}"
     unfolding sequence_module.lincomb_def
