@@ -490,6 +490,10 @@ end
 locale induced_subspace = subspace K W "induced_vs.VS K n" + induced_vs K n for K W n
 begin
 
+abbreviation "subspace_obj \<equiv> vectorspace.vs VS W"
+lemma sub_vs: "vectorspace K subspace_obj"
+  using subspace_axioms vectorspace.subspace_is_vs vs by blast
+
 definition orthogonal_carrier where
   "orthogonal_carrier = {v \<in> V . (\<forall>w \<in> W. orthogonal v w)}"
 

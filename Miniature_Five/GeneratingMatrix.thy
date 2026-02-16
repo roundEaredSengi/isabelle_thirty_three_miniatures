@@ -21,12 +21,13 @@ by \<^cite>\<open>\<open>Example 4.5.11\<close> in Ling_Xing_2004\<close>\<close
 definition (in linear_code) parity_check_matrix:: "'a mat \<Rightarrow> bool"
   where "parity_check_matrix G \<equiv> let
     orthogonal_carrier = induced_subspace.orthogonal_carrier F C n;
-    orthogonal_generating_matrix = linear_code.generating_matrix n orthogonal_carrier F 
+    orthogonal_generating_matrix = linear_code.generating_matrix F orthogonal_carrier n 
   in
     orthogonal_generating_matrix G"
 
 
-lemma (in linear_code) orthogonal_linear_code: "linear_code A n (induced_subspace.orthogonal_carrier F C n) F"
+lemma (in linear_code) orthogonal_linear_code:
+  "linear_code F (induced_subspace.orthogonal_carrier F C n) n"
   sorry
 
 lemma (in linear_code) parity_check:
@@ -53,15 +54,14 @@ proof -
     unfolding linear_code.generating_matrix_def[OF orthogonal_linear_code, of P]
     using vectorspace.basis_def
     by (metis (no_types, lifting) ext linear_code.code_space orthogonal_linear_code subset_code(1)
-        vectorspace.carrier_vs_is_self w_vs)
+        vectorspace.carrier_vs_is_self vs)
   then have "induced_vs.orthogonal F (row P i) v"
-    unfolding induced_subspace.orthogonal_carrier_def[OF code_ind_subspace]
     using assms
-    by simp
+    using orthogonal_carrier_def by auto
   then have "field.scalar_prod F (row P i) v = \<zero>\<^bsub>F\<^esub>"
-    unfolding induced_vs.orthogonal_def[OF elem_vs]
+    unfolding orthogonal_def
     by satx
-  ultimately show "?prod $ i = \<zero>\<^bsub>F\<^esub>" by presburger
+    ultimately show "?prod $ i = \<zero>\<^bsub>F\<^esub>" by presburger
 qed
 
 end

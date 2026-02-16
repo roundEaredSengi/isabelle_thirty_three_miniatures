@@ -2,62 +2,26 @@ theory LinearCode
   imports "../Thirty_Three_Miniatures_Root" "Code" "InducedVectorspace"
 begin
 
-locale linear_code = code +
-  fixes
-    "F"
-    "V"
-  assumes
-    field_F: "field F" and
-    F_carrier: "carrier F = A" and
-    C_axioms: "\<And> u v. u \<in> C \<Longrightarrow> v \<in> C \<Longrightarrow> induced_vs.addition F n u v \<in> C"
-    "\<And> a v. a \<in> A \<Longrightarrow> v \<in> C \<Longrightarrow> induced_vs.scaling F n a v \<in> C"
-    "induced_vs.zero_vec F n \<in> C"
+locale linear_code = induced_subspace F C n + code "carrier F" n C for F C n
 begin
 
-lemma elem_vs: "induced_vs F"
-  using
-    linear_code_axioms
-    linear_code_def[of A n C F]
-    linear_code_axioms_def[of A n C F]
-    induced_vs_def by blast
 
-definition W: "W = induced_vs.VS F n"
-lemma w_vs: "vectorspace F W" using induced_vs.vectorspace_VS elem_vs W by metis
-lemma w_carrier[simp]: "carrier W = words"
-  unfolding W induced_vs.VS[OF elem_vs, of n] words
-  using F_carrier
-  by simp
+abbreviation "W \<equiv> VS"
 
-lemma code_subspace: "subspace F C W" unfolding subspace_def using
-    w_vs
-    induced_vs.vectorspace_VS[OF elem_vs, of n]
-    vectorspace_def[of F W]
-    words_subs words
-    F_carrier
-    C_axioms
-    elem_vs
-  unfolding submodule_def W induced_vs.VS[OF elem_vs]
-  by auto
-lemma code_ind_subspace: "induced_subspace F C n"
-  using code_subspace w_vs induced_subspace_def[of F C n] elem_vs W
-  by metis
-
-abbreviation "CS" where "CS \<equiv> vectorspace.vs W C"
+abbreviation "CS \<equiv> subspace_obj"
 corollary code_space: "vectorspace F CS"
-  using code_subspace w_vs vectorspace.subspace_is_vs
-  by metis
+  using sub_vs .
 
 lemma add_codeword_group: "group (add_monoid CS)"
-  using module.submodule_is_module[of F W C] w_vs code_subspace vectorspace_def[of F W]
+  using module.submodule_is_module[of F W C] vectorspace_def[of F W]
   using module_def[of F CS] abelian_group_def[of CS] abelian_group_axioms_def[of CS]
   using comm_group_def[of "add_monoid CS"]
-  using subspace.submod by blast
-
+  using submod vs by blast
 
 lemma abelian_monoid_code: "abelian_monoid CS" 
-  using module.submodule_is_module[of F W C] w_vs code_subspace vectorspace_def[of F W]
+  using module.submodule_is_module[of F W C] vectorspace_def[of F W]
   using module_def[of F CS] abelian_group_def[of CS]
-  using subspace.submod by blast
+  using submod vs by blast
 
 lemma all_invertible_CS:
   assumes
@@ -74,14 +38,13 @@ lemma all_invertible_W:
     "v \<in> Units (add_monoid W)"
 proof -
   have "group (add_monoid W)"
-    using w_vs
+    using vs
     using vectorspace_def
     using module_def abelian_group_def abelian_group_axioms_def
     using comm_group_def[of "add_monoid W"]
     by blast
   moreover have "carrier W = words"
-    unfolding W induced_vs.VS[OF elem_vs, of n]
-    using F_carrier words
+    unfolding words VS
     by simp
   ultimately show ?thesis
     using assms
@@ -113,18 +76,17 @@ proof -
   have per_elem_equiv: "\<And>i. i \<in> {0..<n} \<Longrightarrow> (u$i \<noteq> v$i) = (\<zero>\<^bsub>W\<^esub>$i \<noteq> (u \<ominus>\<^bsub>W\<^esub> v)$i)"
     using assms
     unfolding words
-    using induced_vs.elem_neq_dif_elem_nonzero[OF elem_vs] F_carrier
-    unfolding W
+    using elem_neq_dif_elem_nonzero
     by presburger
 
   have sub_word: "word (u \<ominus>\<^bsub>W\<^esub> v)"
-    using vectorspace.subtraction_closed[OF w_vs] assms
+    using vectorspace.subtraction_closed[OF vs]
+    unfolding VS word words
+    using assms
     by simp
 
   have "\<zero>\<^bsub>W\<^esub> \<in> C"
-    using C_axioms(3)
-    unfolding W induced_vs.VS[OF elem_vs, of n]
-    by simp
+    using submod submodule.zero_closed by blast
   then have zero_word: "word \<zero>\<^bsub>W\<^esub>"
     using words_subs word
     by blast
@@ -137,7 +99,7 @@ proof -
   finally show ?thesis .
 qed
 
-lemma "minimum_distance = Min { hamming_distance \<zero>\<^bsub>W\<^esub> w | w . w \<in> C \<and> w \<noteq> \<zero>\<^bsub>W\<^esub>}"
+lemma linear_min_distance: "minimum_distance = Min { hamming_distance \<zero>\<^bsub>W\<^esub> w | w . w \<in> C \<and> w \<noteq> \<zero>\<^bsub>W\<^esub>}"
 proof -
   let ?hammings = "{hamming_distance (fst p) (snd p) |p. p \<in> C \<times> C \<and> fst p \<noteq> snd p}"
   have "?hammings = { hamming_distance \<zero>\<^bsub>W\<^esub> w | w . w \<in> C \<and> w \<noteq> \<zero>\<^bsub>W\<^esub>}" proof
@@ -160,12 +122,12 @@ proof -
       have carr: "carrier (add_monoid CS) = C" by simp
       from add_codeword_group have "monoid (add_monoid CS)" using group_def[of "add_monoid CS"] by fast
 
-      have zero_equiv: "\<zero>\<^bsub>CS\<^esub> = \<zero>\<^bsub>W\<^esub>" unfolding W induced_vs.VS[OF elem_vs, of n] by simp
-      have add_equiv: "add CS = add W" unfolding W by simp
-      have scale_equiv: "module.smult CS = module.smult W" unfolding W by simp
+      have zero_equiv: "\<zero>\<^bsub>CS\<^esub> = \<zero>\<^bsub>W\<^esub>" by simp
+      have add_equiv: "add CS = add W" by simp
+      have scale_equiv: "module.smult CS = module.smult W" by simp
       have "\<And>u. u \<in> C \<Longrightarrow> \<ominus>\<^bsub>CS\<^esub> u = \<ominus>\<^bsub>W\<^esub> u"
-        using vectorspace.subspace_inverse_equal[OF w_vs code_subspace]
-        by presburger
+        using vectorspace.subspace_inverse_equal[OF vs]
+        using subspace_axioms by presburger
       then have minus_equiv: "\<And>u v. u \<in> C \<Longrightarrow> v \<in> C \<Longrightarrow> u \<ominus>\<^bsub>CS\<^esub> v = u \<ominus>\<^bsub>W\<^esub> v"
         unfolding a_minus_def using \<open>add CS = add W\<close> by presburger
 
@@ -190,9 +152,8 @@ proof -
       assume "x \<in> {hamming_distance \<zero>\<^bsub>W\<^esub> w |w. w \<in> C \<and> w \<noteq> \<zero>\<^bsub>W\<^esub>}"
       then obtain w where w_props: "w \<in> C" "w \<noteq> \<zero>\<^bsub>W\<^esub>" "hamming_distance w \<zero>\<^bsub>W\<^esub> = x" by auto
       then have "(\<zero>\<^bsub>W\<^esub>, w) \<in> C \<times> C"
-        unfolding W
-        using elem_vs C_axioms
-        by (simp add: induced_vs.VS)
+        using vs submod submodule.zero_closed
+        by auto
       then show "x \<in> {hamming_distance (fst p) (snd p) |p. p \<in> C \<times> C \<and> fst p \<noteq> snd p}"
         using w_props
         by auto

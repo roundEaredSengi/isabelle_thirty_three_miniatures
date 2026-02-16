@@ -53,7 +53,7 @@ proof -
 qed
 
 definition hamming_distance :: "'a vec \<Rightarrow> 'a vec \<Rightarrow> nat" where
-  "hamming_distance u v = (if word u \<and> word v then card {i \<in> {0..<n} . u$i \<noteq> v$i} else  undefined)"
+  "hamming_distance u v = card {i \<in> {0..<n} . u$i \<noteq> v$i}"
 
 definition minimum_distance :: "nat" where
   "minimum_distance = Min {hamming_distance (fst p) (snd p) | p . p \<in> C \<times> C \<and> fst p \<noteq> snd p}"
@@ -62,18 +62,12 @@ definition corrects_errors :: "nat \<Rightarrow> bool" where
   "corrects_errors t \<equiv> \<forall> w\<in>words. card {v\<in>C . hamming_distance w v \<le> t} \<le> 1"
 
 lemma hamming_symm[simp]: "hamming_distance u v = hamming_distance v u"
-proof (cases "word u \<and> word v")
-  case True
-  then have words: "word u" "word v" using words_subs by auto
-
-  then have "hamming_distance u v = card {i \<in> {0..<n}. u $ i \<noteq> v $ i}"
+proof -
+  have "hamming_distance u v = card {i \<in> {0..<n}. u $ i \<noteq> v $ i}"
     using hamming_distance_def by presburger
   also have "\<dots> = card {i \<in> {0..<n}. v $ i \<noteq> u $ i}" by metis
   also have "\<dots> = hamming_distance v u" using words hamming_distance_def by presburger
   finally show ?thesis .
-next
-  case False
-  then show ?thesis using hamming_distance_def by presburger
 qed
 
 lemma distances_finite:
@@ -243,7 +237,7 @@ proof -
     using assms hamming_distance_def by presburger
 qed
 
-theorem min_distance_ecc:
+theorem min_distance_ec:
   fixes
     t :: nat
   shows "corrects_errors t = (minimum_distance \<ge> 2 * t + 1)"
