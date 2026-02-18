@@ -9,14 +9,12 @@ locale code =
     n :: nat and
     C :: "'a vec set"
   assumes
-    "finite A"
-    "card C > 1 \<or> \<not> finite C"
-    "C \<subseteq> {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
+    finite_alphabet: "finite A" and
+    "card C > 1 \<or> \<not> finite C" and
+    words_subs: "C \<subseteq> {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
 begin
-definition words[simp]: "words = {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
-definition word[simp]: "word w = (w \<in> words)"
-
-lemma words_subs[simp]: "C \<subseteq> words" using code_def[of A n C] code_axioms by auto
+abbreviation words where "words \<equiv> {w::'a vec . dim_vec w = n \<and> set\<^sub>v w \<subseteq> A}"
+abbreviation word where "word w \<equiv> (w \<in> words)"
 
 lemma cardA: "card A > 1"
 proof -
@@ -27,7 +25,7 @@ proof -
     using code_axioms code_def[of A n C] distinct_vec_diff_index by blast
   then have "u$i \<in> set\<^sub>v u" using vec_set_def words_subs uv_props by fastforce
   moreover have "v$i \<in> set\<^sub>v v" using i_prop vec_set_def words_subs uv_props by fastforce
-  ultimately have "u$i \<in> A \<and> v$i \<in> A" using uv_props words_subs words by blast
+  ultimately have "u$i \<in> A \<and> v$i \<in> A" using uv_props words_subs by blast
   then have "{u$i, v$i} \<subseteq> A" by simp
   then have "card {u$i, v$i} \<le> card A" using code_axioms code_def[of A n C] card_mono by metis
   then show ?thesis using i_prop by simp
@@ -66,7 +64,7 @@ proof -
   have "hamming_distance u v = card {i \<in> {0..<n}. u $ i \<noteq> v $ i}"
     using hamming_distance_def by presburger
   also have "\<dots> = card {i \<in> {0..<n}. v $ i \<noteq> u $ i}" by metis
-  also have "\<dots> = hamming_distance v u" using words hamming_distance_def by presburger
+  also have "\<dots> = hamming_distance v u" using hamming_distance_def by presburger
   finally show ?thesis .
 qed
 
@@ -135,7 +133,7 @@ proof -
   then have "\<forall> i \<in> {0..<n} . w$i \<in> A" using u_elem_A v_elem_A by auto
   then have "{w $ i | i . i \<in> {..<n}} \<subseteq> A" by fastforce
   ultimately have "set\<^sub>v w \<subseteq> A" using w_def by simp
-  then have is_word: "word w" using word words w_def by auto
+  then have is_word: "word w" using w_def by auto
 
 
   have d_uw: "hamming_distance u w = m" proof -
@@ -152,7 +150,7 @@ proof -
     also have "\<dots> = D" by simp
     finally have "card {i\<in>{0..<n} . u$i \<noteq> w$i} = m" using Diff_prop by simp
 
-    moreover have "word u" using code_axioms code_def[of A n C] assms word by auto
+    moreover have "word u" using code_axioms code_def[of A n C] assms by auto
     then have "hamming_distance u w = card {i\<in>{0..<n} . u$i \<noteq> w$i}"
       using hamming_distance_def[of u w] is_word by simp
 
@@ -178,16 +176,13 @@ proof -
       using card_Diff_subset by auto
     then have "card {i \<in> {0..<n} . (w $ i) \<noteq> (v $ i)} = ?d - m" using diff_card Diff_prop by auto
 
-    moreover have "word v" using code_axioms code_def[of A n C] assms word by auto
+    moreover have "word v" using code_axioms code_def[of A n C] assms by auto
     then have "hamming_distance w v = card {i \<in> {0..<n} . (w $ i) \<noteq> (v $ i)}"
       using hamming_distance_def[of w v] is_word by simp
     ultimately show ?thesis using w_def by argo
   qed
-  ultimately have distances: "hamming_distance u w = m \<and> hamming_distance w v = ?d - m" by fast
-
-  have "w \<in> words" using word is_word by presburger
-
-  from this is_word distances show ?thesis by metis 
+  ultimately have "hamming_distance u w = m \<and> hamming_distance w v = ?d - m" by fast
+  then show ?thesis using is_word by blast 
 qed
 
 lemma minimum_distance_bounds:
@@ -290,8 +285,7 @@ next
   moreover have "\<forall> w\<in>words. card {v\<in>C . hamming_distance w v \<le> t} \<le> 1" proof (rule ccontr)
     assume "\<not> (\<forall>w\<in>words. card {v \<in> C. hamming_distance w v \<le> t} \<le> 1)"
     then have "\<exists> w \<in> words . card {v\<in>C . hamming_distance w v \<le> t} > 1" by auto
-    then obtain w where "word w" "card {v\<in>C . hamming_distance w v \<le> t} > 1"
-      using word by blast
+    then obtain w where "word w" "card {v\<in>C . hamming_distance w v \<le> t} > 1" by blast
     then obtain u v where uv_props:
       "u \<in> C"
       "v \<in> C"
@@ -302,8 +296,8 @@ next
       by blast
     moreover have "hamming_distance u w \<le> t" 
       using uv_props hamming_symm[of w u] by presburger
-    moreover have "word u" using uv_props word codewords_words by presburger
-    moreover have "word v" using uv_props word codewords_words by presburger
+    moreover have "word u" using uv_props codewords_words by presburger
+    moreover have "word v" using uv_props codewords_words by presburger
     ultimately have "hamming_distance u v \<le> t + t"
       using hamming_triangle_ineq[of u v w] \<open>word w\<close> by linarith
     then have "minimum_distance \<le> 2*t" using minimum_distance_bounds uv_props by fastforce

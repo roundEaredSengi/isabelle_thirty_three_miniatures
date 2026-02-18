@@ -7,11 +7,20 @@ hide_const (open) Matrix.mult_mat_vec
 
 lemma (in field) matrix_mul_idx:
   assumes
+    "\<And>i j . i < dim_row A \<Longrightarrow> j < dim_col A \<Longrightarrow> A $$ (i,j) \<in> carrier R"
+    "\<And>i. i < dim_col A \<Longrightarrow> v $ i \<in> carrier R"
     "i \<in> {0..<dim_row A}"
     "dim_vec v = dim_col A"
   shows
     "mult_mat_vec A v $ i = (\<Oplus>j \<in> {0..<dim_col A}. v $ j \<otimes> (col A j $ i))"
 proof -
+  have repl_eq: "\<And>j. j \<in> {0..<dim_col A} \<Longrightarrow> row A i $ j \<otimes> v $ j = v $ j \<otimes> col A j $ i"
+    unfolding row_def col_def using assms m_comm by simp
+
+  have repl_closed: "\<And>j. j \<in> {0..<dim_col A} \<Longrightarrow> v $ j \<otimes> col A j $ i \<in> carrier R"
+    unfolding col_def using m_closed assms by simp
+
+
   have "mult_mat_vec A v $ i = vec (dim_row A) (\<lambda> i. row A i \<bullet> v) $ i"
     unfolding mult_mat_vec_def by presburger
   also have "\<dots> = (\<lambda> i. row A i \<bullet> v) i"
@@ -20,10 +29,12 @@ proof -
     by presburger
   ultimately have "mult_mat_vec A v $ i = (\<Oplus>j\<in>{0..<dim_col A}. row A i $ j \<otimes> v $ j)"
     unfolding scalar_prod_def using assms by presburger
-  also have "\<dots> = (\<Oplus>j\<in>{0..<dim_col A}. (A $$ (i, j)) \<otimes> v $ j)"
-    unfolding row_def try
-  also have "\<dots> = (\<Oplus>j\<in>{0..<dim_col A}. col A j $ i \<otimes> v $ j)"
-    using assms try
+  also have "\<dots> = (\<Oplus>j\<in>{0..<dim_col A}. v $ j \<otimes> col A j $ i)"
+    using finsum_cong'[OF _ _ repl_eq, of _ _ "\<lambda>i. i"]
+    using repl_eq repl_closed
+    by blast
+  finally show ?thesis .
+qed
 
 abbreviation gf2_ring where
   "gf2_ring \<equiv> \<lparr> 
@@ -216,13 +227,16 @@ lemma non_zero_places:
 proof (rule ccontr)
   have orth_sum: "\<forall>i \<in> {0..<n}. (\<Sum>j \<in> {0..<m}. v $ j * (nth_gf2_vec n (j+1) $ i)) = 0" proof
     fix i
-    assume i_bounds: "i \<in> {0..<n}"
 
-    then have "(\<Oplus>\<^bsub>gf2_ring\<^esub>j \<in> {0..<m}. v $ j * (col P j $ i)) = 0"
-      using field.matrix_mul_idx[OF field_F] assms par_check
-      by simp
+    have aaaa: "\<And>x::gf2. x \<in> E" by simp
+
+    assume i_bounds: "i \<in> {0..<n}"
+    then have "(\<Oplus>\<^bsub>gf2_ring\<^esub>j \<in> {0..<dim_col P}. v $ j * (col P j $ i)) = 0"
+      using field.matrix_mul_idx[OF field_F, of P]
+      using words_subs par_check i_bounds assms
+      by fastforce
     then have "(\<Sum>j \<in> {0..<m}. v $ j * (col P j $ i)) = 0"
-      using finsum_to_sum by algebra
+      using finsum_to_sum by simp
     moreover have "\<And>j. j \<in>{0..<m} \<Longrightarrow> (col P j) = (nth_gf2_vec n (j+1))" proof -
       fix j
       assume "j \<in> {0..<m::nat}"
@@ -248,14 +262,16 @@ proof (rule ccontr)
   then show False
   proof cases
     case 1
-    moreover have "\<zero>\<^bsub>CS\<^esub> \<in> C"
+    have "\<zero>\<^bsub>CS\<^esub> \<in> C"
       using submodule.zero_closed[of gf2_ring C VS] submod by simp
-    ultimately have "\<exists>i \<in> {0..<m}. \<zero>\<^bsub>CS\<^esub>$i \<noteq> v$i"
-      using words_subs words assms by fastforce
+    then have "dim_vec \<zero>\<^bsub>CS\<^esub> = m" using words_subs by blast
+    then have "dim_vec \<zero>\<^bsub>CS\<^esub> = dim_vec v" using assms words_subs by auto
+    then have "\<exists>i \<in> {0..<m}. \<zero>\<^bsub>CS\<^esub>$i \<noteq> v$i"
+      using words_subs assms \<open>v \<noteq> \<zero>\<^bsub>CS\<^esub>\<close> by fastforce
     then have "{i \<in> {0..<m}. \<zero>\<^bsub>CS\<^esub>$ i \<noteq> v$ i} \<noteq> {}"
       by blast
     then have "hamming_distance \<zero>\<^bsub>CS\<^esub> v > 0"
-      unfolding hamming_distance_def word
+      unfolding hamming_distance_def
       by fastforce
     then show "False" using 1 by linarith
   next

@@ -20,15 +20,26 @@ by \<^cite>\<open>\<open>Example 4.5.11\<close> in Ling_Xing_2004\<close>\<close
 
 definition (in linear_code) parity_check_matrix:: "'a mat \<Rightarrow> bool"
   where "parity_check_matrix G \<equiv> let
-    orthogonal_carrier = induced_subspace.orthogonal_carrier F C n;
     orthogonal_generating_matrix = linear_code.generating_matrix F orthogonal_carrier n 
   in
     orthogonal_generating_matrix G"
 
 
 lemma (in linear_code) orthogonal_linear_code:
-  "linear_code F (induced_subspace.orthogonal_carrier F C n) n"
-  sorry
+  shows
+    "linear_code F orthogonal_carrier n"
+(*proof -
+  have "induced_subspace F orthogonal_carrier n" sorry
+
+  moreover have "code (carrier F) n orthogonal_carrier"
+  proof (standard, unfold orthogonal_carrier_def, simp add: finite_alphabet assms, auto)
+    assume "\<not> Suc 0 < card {v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E \<and> (\<forall>x\<in>C. local.orthogonal v x)}"
+    then have "card {v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E \<and> (\<forall>x\<in>C. local.orthogonal v x)} \<le> 1"
+      by linarith
+    
+
+  ultimately show ?thesis using linear_code_def by metis
+qed*) sorry
 
 lemma (in linear_code) parity_check:
   assumes
@@ -45,23 +56,27 @@ proof -
     using assms
     unfolding field.mult_mat_vec_def[OF field_F]
     by simp
-  moreover have "row P i = rows P ! i" using assms by simp
-  then have "row P i \<in> set (rows P)" using assms nth_mem length_rows[of P] by metis
-  then have "row P i \<in> induced_subspace.orthogonal_carrier F C n"
+  moreover have "linear_code F orthogonal_carrier n" sorry
+  then have "vectorspace.basis F (W\<lparr>carrier := orthogonal_carrier\<rparr>) (set (rows P))"
     using assms
     unfolding parity_check_matrix_def
     unfolding Let_def
-    unfolding linear_code.generating_matrix_def[OF orthogonal_linear_code, of P]
-    using vectorspace.basis_def
-    by (metis (no_types, lifting) ext linear_code.code_space orthogonal_linear_code subset_code(1)
-        vectorspace.carrier_vs_is_self vs)
+    using linear_code.generating_matrix_def
+    using orthogonal_linear_code
+    by metis
+  then have "set (rows P) \<subseteq> orthogonal_carrier"
+    using orthogonal_linear_code linear_code.code_space
+    using vectorspace.basis_def by fastforce
+  then have "rows P ! i \<in> orthogonal_carrier"
+    using assms length_rows[of P] nth_mem subset_eq by metis
+  then have "row P i \<in> orthogonal_carrier" using assms by simp
   then have "induced_vs.orthogonal F (row P i) v"
     using assms
     using orthogonal_carrier_def by auto
   then have "field.scalar_prod F (row P i) v = \<zero>\<^bsub>F\<^esub>"
     unfolding orthogonal_def
     by satx
-    ultimately show "?prod $ i = \<zero>\<^bsub>F\<^esub>" by presburger
+  ultimately show "?prod $ i = \<zero>\<^bsub>F\<^esub>" by presburger
 qed
 
 end

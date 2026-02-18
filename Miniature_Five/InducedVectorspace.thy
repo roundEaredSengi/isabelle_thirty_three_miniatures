@@ -30,7 +30,7 @@ proof (safe)
   then show "x \<in> E" using ring.ring_simprules(2)[OF ring_F] by presburger
 qed (simp add: zero_vec_def)
 
-definition VS: "VS = \<lparr> 
+abbreviation VS where "VS \<equiv> \<lparr> 
   carrier = V,
   mult = undefined,
   one = undefined,
@@ -287,75 +287,63 @@ qed
 lemma abelian_group_VS: "abelian_group VS" proof
   show "\<And>x y. x \<in> carrier (add_monoid VS) \<Longrightarrow>
            y \<in> carrier (add_monoid VS) \<Longrightarrow>
-           x \<otimes>\<^bsub>add_monoid VS\<^esub> y \<in> carrier (add_monoid VS)" unfolding VS using addition_closed by auto
+           x \<otimes>\<^bsub>add_monoid VS\<^esub> y \<in> carrier (add_monoid VS)" using addition_closed by auto
 next
   show "\<And>x y z.
        x \<in> carrier (add_monoid VS) \<Longrightarrow>
        y \<in> carrier (add_monoid VS) \<Longrightarrow>
        z \<in> carrier (add_monoid VS) \<Longrightarrow>
        x \<otimes>\<^bsub>add_monoid VS\<^esub> y \<otimes>\<^bsub>add_monoid VS\<^esub> z =
-       x \<otimes>\<^bsub>add_monoid VS\<^esub> (y \<otimes>\<^bsub>add_monoid VS\<^esub> z)" unfolding VS using addition_assoc by auto
+       x \<otimes>\<^bsub>add_monoid VS\<^esub> (y \<otimes>\<^bsub>add_monoid VS\<^esub> z)" using addition_assoc by auto
 next
-  show "\<one>\<^bsub>add_monoid VS\<^esub> \<in> carrier (add_monoid VS)" unfolding VS using zero_vec_in_v by simp
+  show "\<one>\<^bsub>add_monoid VS\<^esub> \<in> carrier (add_monoid VS)" using zero_vec_in_v by simp
 next
   show "\<And>x. x \<in> carrier (add_monoid VS) \<Longrightarrow> \<one>\<^bsub>add_monoid VS\<^esub> \<otimes>\<^bsub>add_monoid VS\<^esub> x = x"
-    unfolding VS using addition_0_id by simp
+    using addition_0_id by simp
 next
   show "\<And>x. x \<in> carrier (add_monoid VS) \<Longrightarrow> x \<otimes>\<^bsub>add_monoid VS\<^esub> \<one>\<^bsub>add_monoid VS\<^esub> = x"
-    unfolding VS using addition_0_id addition_comm
+    using addition_0_id addition_comm
     using zero_vec_in_v by force
-next
-  show "\<And>x y. x \<in> carrier (add_monoid VS) \<Longrightarrow>
-           y \<in> carrier (add_monoid VS) \<Longrightarrow>
-           x \<otimes>\<^bsub>add_monoid VS\<^esub> y = y \<otimes>\<^bsub>add_monoid VS\<^esub> x"
-    unfolding VS using addition_comm by simp
 next
   show "carrier (add_monoid VS) \<subseteq> Units (add_monoid VS)" proof
     fix v                            
     assume "v \<in> carrier (add_monoid VS)"
-    then have "v \<in> V" unfolding VS by simp
+    then have "v \<in> V" by simp
     moreover have "\<exists> u\<in>V  . addition u v = zero_vec \<and> addition v u = zero_vec" proof -
       from \<open>v \<in> V\<close> obtain u where "u \<in> V" "addition u v = zero_vec" using addition_inv_ex by blast
       moreover from this have "addition v u = zero_vec" using \<open>v \<in> V\<close> addition_comm by simp
       ultimately show ?thesis by auto
     qed
-    ultimately show "v \<in> Units (add_monoid VS)" unfolding VS Units_def by simp
+    ultimately show "v \<in> Units (add_monoid VS)" unfolding Units_def by simp
   qed
-qed
+qed (simp add: addition_comm zero_vec_in_v)
 
 
-lemma vectorspace_VS: "vectorspace F VS" proof (unfold vectorspace_def module_def module_axioms_def, simp, safe)
+lemma vectorspace_VS: "vectorspace F VS" proof (unfold vectorspace_def module_def module_axioms_def, simp, safe, goal_cases)
+  case 1
   show "field F" using induced_vs_def[of F] induced_vs_axioms by satx
   then show "cring F" using field_def domain_def by metis
 next
+  case 2
   show "abelian_group VS" using abelian_group_VS .
 next
-  fix a x
-  assume "a \<in> carrier F" "x \<in> carrier VS"
-  then show "a \<odot>\<^bsub>VS\<^esub> x \<in> carrier VS" unfolding VS using scaling_closed by auto
+  case (3 a x)
+  then show ?case using scaling_closed by auto
 next
-  fix a b x
-  assume "a \<in> carrier F" "b \<in> carrier F" "x \<in> carrier VS"
-  moreover from this have "x \<in> V" unfolding VS by simp
-  ultimately show "(a \<oplus>\<^bsub>F\<^esub> b) \<odot>\<^bsub>VS\<^esub> x = a \<odot>\<^bsub>VS\<^esub> x \<oplus>\<^bsub>VS\<^esub> b \<odot>\<^bsub>VS\<^esub> x"
-    unfolding VS using factor_sum_distr[OF \<open>a \<in> E\<close> \<open>b \<in> E\<close> \<open>x \<in> V\<close>] by simp
+  case (4 a x xa)
+  then show ?case using scaling_closed by auto
 next
-  fix a x y
-  assume assms: "a \<in> E" "x \<in> carrier VS" "y \<in> carrier VS"
-  moreover from this have "x \<in> V" unfolding VS by simp
-  moreover from assms have "y \<in> V" unfolding VS by simp
-  ultimately show "a \<odot>\<^bsub>VS\<^esub> (x \<oplus>\<^bsub>VS\<^esub> y) = a \<odot>\<^bsub>VS\<^esub> x \<oplus>\<^bsub>VS\<^esub> a \<odot>\<^bsub>VS\<^esub> y"
-    unfolding VS using vector_sum_distr[OF \<open>a \<in> E\<close> \<open>x \<in> V\<close> \<open>y \<in> V\<close>] by simp
+  case (5 a b x)
+  then show ?case using factor_sum_distr by simp
 next
-  fix a b x
-  assume assms: "a \<in> E" "b \<in> E" "x \<in> carrier VS"
-  then show "a \<otimes>\<^bsub>F\<^esub> b \<odot>\<^bsub>VS\<^esub> x = a \<odot>\<^bsub>VS\<^esub> (b \<odot>\<^bsub>VS\<^esub> x)"
-    unfolding VS using mult_scale_assoc by simp  
+  case (6 a x y)
+  then show ?case using vector_sum_distr by simp
 next
-  fix x
-  assume in_carrier: "x \<in> carrier VS"
-  then have "x \<in> V" unfolding VS by simp
-  then show "\<one>\<^bsub>F\<^esub> \<odot>\<^bsub>VS\<^esub> x = x" unfolding VS using scale_1_id by simp
+  case (7 a b x)
+  then show ?case using mult_scale_assoc by simp
+next
+  case (8 x)
+  then show ?case using scale_1_id by simp
 qed
 
 lemma additive_inverse[simp]:
@@ -374,22 +362,20 @@ proof -
     by satx
   moreover from this have "monoid (add_monoid VS)" unfolding group_def
     by satx
-  moreover have "v \<in> carrier VS" unfolding VS using assms by simp
+  moreover have "v \<in> carrier VS" using assms by simp
   moreover from calculation have "?u \<oplus>\<^bsub>VS\<^esub> v = \<zero>\<^bsub>VS\<^esub>"
     unfolding a_inv_def
     using group.l_inv[of "add_monoid VS" v]
     by auto
   moreover have "v \<oplus>\<^bsub>VS\<^esub> ?w = \<zero>\<^bsub>VS\<^esub>" 
     using addition_inv_eq assms
-    unfolding VS
     by simp
   moreover from calculation have "?u \<in> carrier VS"
     unfolding a_inv_def
     using group.inv_closed[of "add_monoid VS" v]
-    by (simp add: VS)
+    by simp
   moreover have "?w \<in> carrier VS"
     using addition_inv_closed assms
-    unfolding VS
     by auto
   ultimately show ?thesis using monoid.inv_unique[of "add_monoid VS" ?u v ?w] assms by auto
 qed
@@ -408,11 +394,10 @@ proof
   show "\<zero>\<^bsub>VS\<^esub>$i \<noteq> (u \<ominus>\<^bsub>VS\<^esub> v)$i" proof (rule ccontr)
     assume "\<not> \<zero>\<^bsub>VS\<^esub> $ i \<noteq> (u \<ominus>\<^bsub>VS\<^esub> v) $ i"
     then have "\<zero>\<^bsub>F\<^esub> = (u \<ominus>\<^bsub>VS\<^esub> v) $ i"
-      unfolding VS
       using zero_vec_def assms
       by simp
     also have "\<dots> = u$i \<oplus>\<^bsub>F\<^esub> (\<ominus>\<^bsub>VS\<^esub> v)$i"
-      unfolding a_minus_def addition_def VS
+      unfolding a_minus_def addition_def
       using assms
       by simp
     also have "\<dots> = u$i \<oplus>\<^bsub>F\<^esub> (\<ominus>\<^bsub>F\<^esub> (v$i))"
@@ -444,7 +429,7 @@ proof
 next
   assume "\<zero>\<^bsub>VS\<^esub> $ i \<noteq> (u \<ominus>\<^bsub>VS\<^esub> v) $ i"
   then have assm: "\<zero>\<^bsub>F\<^esub> \<noteq> (u \<ominus>\<^bsub>VS\<^esub> v)$i"
-    unfolding VS zero_vec_def
+    unfolding zero_vec_def
     using assms
     by simp
   
@@ -470,16 +455,12 @@ next
       using additive_inverse assms
       by presburger
     also have "\<dots> = (u \<ominus>\<^bsub>VS\<^esub> v)$i"
-      unfolding VS a_minus_def
+      unfolding a_minus_def
       using addition_def assms
       by simp
     finally show "False" using assm by satx
   qed
 qed
-
-lemma induced_dim[simp]:
-  "vectorspace.dim F VS = n"
-  sorry
 
 
 definition orthogonal where

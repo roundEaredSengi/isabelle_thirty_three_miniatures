@@ -44,7 +44,6 @@ proof -
     using comm_group_def[of "add_monoid W"]
     by blast
   moreover have "carrier W = words"
-    unfolding words VS
     by simp
   ultimately show ?thesis
     using assms
@@ -75,24 +74,22 @@ lemma hamming_distance_subtract:
 proof -
   have per_elem_equiv: "\<And>i. i \<in> {0..<n} \<Longrightarrow> (u$i \<noteq> v$i) = (\<zero>\<^bsub>W\<^esub>$i \<noteq> (u \<ominus>\<^bsub>W\<^esub> v)$i)"
     using assms
-    unfolding words
     using elem_neq_dif_elem_nonzero
     by presburger
 
   have sub_word: "word (u \<ominus>\<^bsub>W\<^esub> v)"
     using vectorspace.subtraction_closed[OF vs]
-    unfolding VS word words
     using assms
     by simp
 
   have "\<zero>\<^bsub>W\<^esub> \<in> C"
     using submod submodule.zero_closed by blast
   then have zero_word: "word \<zero>\<^bsub>W\<^esub>"
-    using words_subs word
+    using words_subs
     by blast
 
   have "hamming_distance u v = card {i \<in> {0..<n}. u$i \<noteq> v$i}"
-    using assms word hamming_distance_def by presburger
+    using assms hamming_distance_def by presburger
   also have "\<dots> =  card {i \<in> {0..<n}. \<zero>\<^bsub>W\<^esub>$i \<noteq> (u \<ominus>\<^bsub>W\<^esub> v)$i}"
     using per_elem_equiv by meson
   also have "\<dots> = hamming_distance \<zero>\<^bsub>W\<^esub> (u \<ominus>\<^bsub>W\<^esub> v)" using zero_word sub_word hamming_distance_def by presburger
@@ -153,7 +150,7 @@ proof -
       then obtain w where w_props: "w \<in> C" "w \<noteq> \<zero>\<^bsub>W\<^esub>" "hamming_distance w \<zero>\<^bsub>W\<^esub> = x" by auto
       then have "(\<zero>\<^bsub>W\<^esub>, w) \<in> C \<times> C"
         using vs submod submodule.zero_closed
-        by auto
+        by blast
       then show "x \<in> {hamming_distance (fst p) (snd p) |p. p \<in> C \<times> C \<and> fst p \<noteq> snd p}"
         using w_props
         by auto
