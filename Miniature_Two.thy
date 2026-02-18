@@ -1,5 +1,5 @@
 theory Miniature_Two
-imports Thirty_Three_Miniatures_Root
+  imports More_Finsum
 
 begin
 
@@ -165,95 +165,95 @@ next
       by blast
   qed
 qed
-    
+
 interpretation sequence_module: Module.module reals fib_space
 proof (unfold module_def module_axioms_def, safe)
-    have "field reals" 
-      unfolding reals_def
-      using class_field
-      by metis
-    thus "cring reals" 
-      unfolding field_def domain_def
-      by satx
-  next
-    show "abelian_group fib_space"
-      using sequence_group.abelian_group_axioms
-      by blast
-  next
+  have "field reals" 
+    unfolding reals_def
+    using class_field
+    by metis
+  thus "cring reals" 
+    unfolding field_def domain_def
+    by satx
+next
+  show "abelian_group fib_space"
+    using sequence_group.abelian_group_axioms
+    by blast
+next
+  fix
+    \<alpha> :: real and
+    f :: "nat \<Rightarrow> real"
+  assume
+    scalar: "\<alpha> \<in> carrier reals" and
+    vector: "f \<in> carrier fib_space"
+  show "\<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<in> carrier fib_space"
+  proof (unfold fib_space_def fib_sequences_def, simp, safe)
     fix
-      \<alpha> :: real and
-      f :: "nat \<Rightarrow> real"
-    assume
-      scalar: "\<alpha> \<in> carrier reals" and
-      vector: "f \<in> carrier fib_space"
-    show "\<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<in> carrier fib_space"
-    proof (unfold fib_space_def fib_sequences_def, simp, safe)
-      fix
-        n :: nat
-      have "\<alpha> * f (Suc (Suc n)) = \<alpha> * (f n + f (Suc n))"
-        using vector
-        unfolding fib_space_def fib_sequences_def fib_prop.simps
-        by simp
-      also have "... = \<alpha> * (f n) + \<alpha> * (f (Suc n))"
-        by argo
-      finally have "\<alpha> * f (Suc (Suc n)) = \<alpha> * f n + \<alpha> * f (Suc n)"
-        by simp
-      thus "fib_prop (\<lambda>n. \<alpha> * f n) n"
-        by simp
-    qed
-  next
-    fix
-      \<alpha> :: real and \<beta> :: real and f :: "nat \<Rightarrow> real"
-    have "(\<alpha> \<oplus>\<^bsub>reals\<^esub> \<beta>) \<odot>\<^bsub>fib_space\<^esub> f = (\<lambda>n. (\<alpha> + \<beta>) * (f n))"
-      unfolding reals_def fib_space_def
+      n :: nat
+    have "\<alpha> * f (Suc (Suc n)) = \<alpha> * (f n + f (Suc n))"
+      using vector
+      unfolding fib_space_def fib_sequences_def fib_prop.simps
       by simp
-    also have "... = (\<lambda>n. \<alpha> * (f n) + \<beta> * (f n))"
-      by (simp add: ring_class.ring_distribs(2))
-    also have "... = (\<lambda>n. \<alpha> * (f n)) \<oplus>\<^bsub>fib_space\<^esub> (\<lambda>n. \<beta> * (f n))"
-      unfolding fib_space_def
+    also have "... = \<alpha> * (f n) + \<alpha> * (f (Suc n))"
+      by argo
+    finally have "\<alpha> * f (Suc (Suc n)) = \<alpha> * f n + \<alpha> * f (Suc n)"
       by simp
-    also have "... = \<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<oplus>\<^bsub>fib_space\<^esub> \<beta> \<odot>\<^bsub>fib_space\<^esub> f"
-      unfolding fib_space_def
-      by simp
-    finally show "(\<alpha> \<oplus>\<^bsub>reals\<^esub> \<beta>) \<odot>\<^bsub>fib_space\<^esub> f = \<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<oplus>\<^bsub>fib_space\<^esub> \<beta> \<odot>\<^bsub>fib_space\<^esub> f"
-      by simp
-  next
-    fix
-      \<alpha> :: real and f :: "nat \<Rightarrow> real" and g :: "nat \<Rightarrow> real"
-    have "\<alpha> \<odot>\<^bsub>fib_space\<^esub> (f \<oplus>\<^bsub>fib_space\<^esub> g) = (\<lambda>n. \<alpha> * (f n + g n))"
-      unfolding fib_space_def
-      by simp
-    also have "... = (\<lambda>n. \<alpha> * (f n) + \<alpha> * (g n))"
-      by (simp add: distrib_left)
-    also have "... = (\<lambda>n. \<alpha> * (f n)) \<oplus>\<^bsub>fib_space\<^esub> (\<lambda>n. \<alpha> * (g n))"
-      unfolding fib_space_def
-      by simp
-    also have "... = \<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<oplus>\<^bsub>fib_space\<^esub> \<alpha> \<odot>\<^bsub>fib_space\<^esub> g"
-      unfolding fib_space_def
-      by simp
-    finally show 
-      "\<alpha> \<odot>\<^bsub>fib_space\<^esub> (f \<oplus>\<^bsub>fib_space\<^esub> g) = \<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<oplus>\<^bsub>fib_space\<^esub> \<alpha> \<odot>\<^bsub>fib_space\<^esub> g"
-      by simp
-  next
-    fix
-      \<alpha> :: real and \<beta> :: real and f :: "nat \<Rightarrow> real"
-    have "\<alpha> \<otimes>\<^bsub>reals\<^esub> \<beta> \<odot>\<^bsub>fib_space\<^esub> f = (\<lambda>n. \<alpha> * \<beta> * (f n))"
-      unfolding reals_def fib_space_def
-      by simp
-    also have "... = (\<lambda>n. \<alpha> * ((\<beta> \<odot>\<^bsub>fib_space\<^esub> f) n))"
-      unfolding fib_space_def
-      by auto
-    also have "... = \<alpha> \<odot>\<^bsub>fib_space\<^esub> (\<beta> \<odot>\<^bsub>fib_space\<^esub> f)"
-      unfolding fib_space_def
-      by simp
-    finally show "\<alpha> \<otimes>\<^bsub>reals\<^esub> \<beta> \<odot>\<^bsub>fib_space\<^esub> f = \<alpha> \<odot>\<^bsub>fib_space\<^esub> (\<beta> \<odot>\<^bsub>fib_space\<^esub> f)"
-      by simp
-  next
-    fix f :: "nat \<Rightarrow> real"
-    show "\<one>\<^bsub>reals\<^esub> \<odot>\<^bsub>fib_space\<^esub> f = f"
-      unfolding fib_space_def reals_def
+    thus "fib_prop (\<lambda>n. \<alpha> * f n) n"
       by simp
   qed
+next
+  fix
+    \<alpha> :: real and \<beta> :: real and f :: "nat \<Rightarrow> real"
+  have "(\<alpha> \<oplus>\<^bsub>reals\<^esub> \<beta>) \<odot>\<^bsub>fib_space\<^esub> f = (\<lambda>n. (\<alpha> + \<beta>) * (f n))"
+    unfolding reals_def fib_space_def
+    by simp
+  also have "... = (\<lambda>n. \<alpha> * (f n) + \<beta> * (f n))"
+    by (simp add: ring_class.ring_distribs(2))
+  also have "... = (\<lambda>n. \<alpha> * (f n)) \<oplus>\<^bsub>fib_space\<^esub> (\<lambda>n. \<beta> * (f n))"
+    unfolding fib_space_def
+    by simp
+  also have "... = \<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<oplus>\<^bsub>fib_space\<^esub> \<beta> \<odot>\<^bsub>fib_space\<^esub> f"
+    unfolding fib_space_def
+    by simp
+  finally show "(\<alpha> \<oplus>\<^bsub>reals\<^esub> \<beta>) \<odot>\<^bsub>fib_space\<^esub> f = \<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<oplus>\<^bsub>fib_space\<^esub> \<beta> \<odot>\<^bsub>fib_space\<^esub> f"
+    by simp
+next
+  fix
+    \<alpha> :: real and f :: "nat \<Rightarrow> real" and g :: "nat \<Rightarrow> real"
+  have "\<alpha> \<odot>\<^bsub>fib_space\<^esub> (f \<oplus>\<^bsub>fib_space\<^esub> g) = (\<lambda>n. \<alpha> * (f n + g n))"
+    unfolding fib_space_def
+    by simp
+  also have "... = (\<lambda>n. \<alpha> * (f n) + \<alpha> * (g n))"
+    by (simp add: distrib_left)
+  also have "... = (\<lambda>n. \<alpha> * (f n)) \<oplus>\<^bsub>fib_space\<^esub> (\<lambda>n. \<alpha> * (g n))"
+    unfolding fib_space_def
+    by simp
+  also have "... = \<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<oplus>\<^bsub>fib_space\<^esub> \<alpha> \<odot>\<^bsub>fib_space\<^esub> g"
+    unfolding fib_space_def
+    by simp
+  finally show 
+    "\<alpha> \<odot>\<^bsub>fib_space\<^esub> (f \<oplus>\<^bsub>fib_space\<^esub> g) = \<alpha> \<odot>\<^bsub>fib_space\<^esub> f \<oplus>\<^bsub>fib_space\<^esub> \<alpha> \<odot>\<^bsub>fib_space\<^esub> g"
+    by simp
+next
+  fix
+    \<alpha> :: real and \<beta> :: real and f :: "nat \<Rightarrow> real"
+  have "\<alpha> \<otimes>\<^bsub>reals\<^esub> \<beta> \<odot>\<^bsub>fib_space\<^esub> f = (\<lambda>n. \<alpha> * \<beta> * (f n))"
+    unfolding reals_def fib_space_def
+    by simp
+  also have "... = (\<lambda>n. \<alpha> * ((\<beta> \<odot>\<^bsub>fib_space\<^esub> f) n))"
+    unfolding fib_space_def
+    by auto
+  also have "... = \<alpha> \<odot>\<^bsub>fib_space\<^esub> (\<beta> \<odot>\<^bsub>fib_space\<^esub> f)"
+    unfolding fib_space_def
+    by simp
+  finally show "\<alpha> \<otimes>\<^bsub>reals\<^esub> \<beta> \<odot>\<^bsub>fib_space\<^esub> f = \<alpha> \<odot>\<^bsub>fib_space\<^esub> (\<beta> \<odot>\<^bsub>fib_space\<^esub> f)"
+    by simp
+next
+  fix f :: "nat \<Rightarrow> real"
+  show "\<one>\<^bsub>reals\<^esub> \<odot>\<^bsub>fib_space\<^esub> f = f"
+    unfolding fib_space_def reals_def
+    by simp
+qed
 
 interpretation sequence_space: vectorspace reals fib_space
 proof (unfold vectorspace_def, safe)
@@ -267,125 +267,6 @@ proof (unfold vectorspace_def, safe)
 qed
 
 section \<open>Vector Space Basis\<close>
-
-thm abelian_monoid.finsum_insert
-
-text \<open>
-  Technical rewriting lemma:
-
-  Forming the finite sum over two summands, when addition commutes, is the same as adding the two 
-  summands in arbitrary order. (This can be generalized to any finite number of summands.)
-\<close>
-lemma (in abelian_monoid) finsum_2_elts[simp]:
-  fixes
-    x :: 'x and y :: 'x and f :: "'x \<Rightarrow> 'a"
-  assumes
-    "x \<noteq> y" and
-    "f \<in> {x,y} \<rightarrow> carrier G"
-  shows
-    "(\<Oplus>\<^bsub>G\<^esub>v\<in>{x,y}. f v) = f x \<oplus>\<^bsub>G\<^esub> f y"
-proof -
-  have "{x,y} = insert y {x}"
-    using assms
-    by blast
-  hence "(\<Oplus>\<^bsub>G\<^esub>v\<in>{x,y}. f v) = finsum G f (insert x {y})"
-    by simp
-  (* TODO why does "also" fail? *)
-  moreover have "... = f x \<oplus>\<^bsub>G\<^esub> finsum G f {y}"
-    using finsum_insert[of "{y}" x f] assms
-    by simp
-  moreover have "... = f x \<oplus>\<^bsub>G\<^esub> (f y \<oplus>\<^bsub>G\<^esub> finsum G f {})"
-    using finsum_insert[of "{}" y f] assms
-    by simp
-  moreover have "... = f x \<oplus>\<^bsub>G\<^esub> (f y \<oplus>\<^bsub>G\<^esub> \<zero>\<^bsub>G\<^esub>)"
-    using finsum_empty[of f]
-    by metis
-  moreover have "... = f x \<oplus>\<^bsub>G\<^esub> f y"
-    using assms
-    by simp
-  ultimately show ?thesis
-    by simp
-qed
-
-lemma (in abelian_monoid) finsum_eq: 
-  (* TODO should hold in general but induction would fail without commutativity? *)
-  fixes 
-    f :: "'x \<Rightarrow> 'a" and g :: "'x \<Rightarrow> 'a" and X :: "'x set"
-  assumes
-    "\<forall>x \<in> X. f x = g x" and "f \<in> X \<rightarrow> carrier G" and "g \<in> X \<rightarrow> carrier G"
-  shows
-    "(\<Oplus>\<^bsub>G\<^esub>v\<in>X. f v) = (\<Oplus>\<^bsub>G\<^esub>v\<in>X. g v)"
-proof (cases "finite X")
-  case True
-  then show ?thesis
-    using assms
-  proof (induction "card X" arbitrary: X f g)
-    case 0
-    hence "(\<Oplus>\<^bsub>G\<^esub>v\<in>X. f v) = \<one>\<^bsub>add_monoid G\<^esub>"
-      unfolding finsum_def finprod_def
-      using foldD_empty[of "\<one>\<^bsub>add_monoid G\<^esub>" "carrier (add_monoid G)" "(\<otimes>\<^bsub>add_monoid G\<^esub>) \<circ> f"] assms
-      by simp
-    moreover have "(\<Oplus>\<^bsub>G\<^esub>v\<in>X. g v) = \<one>\<^bsub>add_monoid G\<^esub>"
-      unfolding finsum_def finprod_def 
-      using 0 assms foldD_empty[of "\<one>\<^bsub>add_monoid G\<^esub>" "carrier (add_monoid G)" "(\<otimes>\<^bsub>add_monoid G\<^esub>) \<circ> g"]
-      by simp
-    ultimately show ?case 
-      by simp
-  next
-    case (Suc n)
-    hence "X \<noteq> {}" by auto
-    then obtain x :: 'x where "x \<in> X" by blast
-    have func_f: "f \<in> X - {x} \<rightarrow> carrier G"
-      using Suc
-      unfolding Pi_def
-      by simp
-    have func_g: "g \<in> X - {x} \<rightarrow> carrier G"
-      using Suc
-      unfolding Pi_def
-      by simp
-    have elt_f: "f x \<in> carrier G"
-      using Suc \<open>x \<in> X\<close>
-      unfolding Pi_def
-      by simp
-    have elt_g: "g x \<in> carrier G"
-      using Suc \<open>x \<in> X\<close>
-      unfolding Pi_def
-      by simp
-    from \<open>x \<in> X\<close> have "card (X - {x}) = n"
-      using Suc
-      by simp
-    moreover have fin: "finite (X - {x})" using Suc by simp
-    ultimately have "(\<Oplus>\<^bsub>G\<^esub>v\<in>(X - {x}). f v) = (\<Oplus>\<^bsub>G\<^esub>v\<in>(X - {x}). g v)" 
-      using Suc
-      by blast
-    moreover have "(\<Oplus>\<^bsub>G\<^esub>v\<in>insert x (X - {x}). f v) = f x \<oplus>\<^bsub>G\<^esub> (\<Oplus>\<^bsub>G\<^esub>v\<in>(X - {x}). f v)"
-      using finsum_insert[of "X - {x}" x f, OF fin _ func_f elt_f]
-      by simp
-    moreover have "(\<Oplus>\<^bsub>G\<^esub>v\<in>insert x (X - {x}). g v) = g x \<oplus>\<^bsub>G\<^esub> (\<Oplus>\<^bsub>G\<^esub>v\<in>(X - {x}). g v)"
-      using finsum_insert[of "X - {x}" x g, OF fin _ func_g elt_g]
-      by simp
-    moreover have "f x = g x"
-      using \<open>x \<in> X\<close> Suc
-      by blast
-    ultimately have "(\<Oplus>\<^bsub>G\<^esub>v\<in>insert x (X - {x}). f v) = (\<Oplus>\<^bsub>G\<^esub>v\<in>insert x (X - {x}). g v)"
-      by simp
-    moreover have "insert x (X - {x}) = X"
-      using \<open>x \<in> X\<close>
-      by blast
-    ultimately show ?case by simp
-  qed
-next
-  case False
-  hence "(\<Oplus>\<^bsub>G\<^esub>v\<in>X. f v) = \<one>\<^bsub>add_monoid G\<^esub>"
-    unfolding finsum_def finprod_def
-    by simp
-  moreover have "(\<Oplus>\<^bsub>G\<^esub>v\<in>X. g v) = \<one>\<^bsub>add_monoid G\<^esub>"
-    using False
-    unfolding finsum_def finprod_def
-    by simp
-  ultimately show ?thesis
-    by simp
-qed
 
 subsection \<open>"Standard" Basis of the Fibonacci Sequence Space\<close>
 
@@ -521,9 +402,9 @@ proof -
       unfolding sequence_module.lincomb_def
       by simp
     moreover have "... = (\<Oplus>\<^bsub>fib_space\<^esub>f\<in>{seq_10, seq_01}. ?mu f)"
-      using abelian_monoid.finsum_eq[
-              of fib_space "{seq_10, seq_01}" _ _, 
-              OF sequence_group.abelian_monoid_axioms _ func] func
+      using abelian_monoid.finsum_cong'[
+              of fib_space "{seq_10, seq_01}" "{seq_10, seq_01}" 
+                  "\<lambda>f. \<mu> f \<odot>\<^bsub>fib_space\<^esub> f" "\<lambda>f. ?mu f"] func
       by meson
     moreover have "... = \<mu> seq_10 \<odot>\<^bsub>fib_space\<^esub> seq_10 \<oplus>\<^bsub>fib_space\<^esub> \<mu> seq_01 \<odot>\<^bsub>fib_space\<^esub> seq_01"
       using abelian_monoid.finsum_2_elts[
@@ -610,8 +491,9 @@ proof -
       by simp
     ultimately show ?case
       using func_eq 
-            abelian_monoid.finsum_eq[
-              of fib_space "{seq_10, seq_01}" "?phi' f" "(\<lambda>g. ?phi f g \<odot>\<^bsub>fib_space\<^esub> g)",
+            abelian_monoid.finsum_cong'[
+              of fib_space "{seq_10, seq_01}" "{seq_10, seq_01}" 
+                  "?phi' f" "(\<lambda>g. ?phi f g \<odot>\<^bsub>fib_space\<^esub> g)",
               OF sequence_group.abelian_monoid_axioms]
       by simp
   qed
@@ -965,7 +847,7 @@ proof (unfold fib_space_def, simp)
 qed
 
 text \<open>
-  An explicit formula for the Fibonacci sequence follows from the coordinates w.r.t the basis
+  Binet's explicit formula for the Fibonacci sequence follows from the coordinates w.r.t the basis
   \<^latex>\<open>(\<tau>_1, \<tau>_2)\<close>. Instead of inductively proving the explicit formula, we just rewrite the
   linear combination of the basis vectors.
 \<close>
