@@ -3,14 +3,15 @@ theory LinearCode
 begin
 
 locale linear_code = induced_subspace F C n + code "carrier F" n C for F C n
+  + assumes
+  "C \<noteq> V"
 begin
-
 
 abbreviation "W \<equiv> VS"
 
 abbreviation "CS \<equiv> subspace_obj"
 corollary code_space: "vectorspace F CS"
-  using sub_vs .
+  by (rule sub_vs)
 
 lemma add_codeword_group: "group (add_monoid CS)"
   using module.submodule_is_module[of F W C] vectorspace_def[of F W]

@@ -466,6 +466,32 @@ qed
 definition orthogonal where
   "orthogonal u v = (field.scalar_prod F u v = \<zero>\<^bsub>F\<^esub>)"
 
+lemma orthogonal_symm: "orthogonal u v = orthogonal v u" sorry
+
+lemma zero_orthogonal:
+  assumes
+    "v \<in> V"
+  shows
+    "orthogonal zero_vec v"
+proof -
+ have "abelian_monoid F" using ring_F ring_def abelian_group_def by metis
+
+  have "field.scalar_prod F zero_vec v = (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<n}. zero_vec $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
+    unfolding field.scalar_prod_def[OF field_F] using assms by simp
+  moreover have "\<And>i. i \<in> {0..<n} \<Longrightarrow> zero_vec $ i \<otimes>\<^bsub>F\<^esub> v $ i = \<zero>\<^bsub>F\<^esub>"
+    unfolding zero_vec_def using assms ring.ring_simprules(24) ring_F by force
+  moreover have "(\<lambda>_. \<zero>\<^bsub>F\<^esub>) \<in> {0..<n} \<rightarrow> E"
+    using ring.ring_simprules(2) ring_F by auto
+  ultimately have "field.scalar_prod F zero_vec v = (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<n}. \<zero>\<^bsub>F\<^esub>)"
+    using zero_vec_in_v \<open>abelian_monoid F\<close>
+    using abelian_monoid.finsum_cong'[of F _ _ _ "\<lambda>i. zero_vec $ i \<otimes>\<^bsub>F\<^esub> v $ i"]
+    by presburger
+
+  then show ?thesis
+    unfolding orthogonal_def
+    using abelian_monoid.finsum_zero \<open>abelian_monoid F\<close>
+    by metis
+qed
 end
 
 locale induced_subspace = subspace K W "induced_vs.VS K n" + induced_vs K n for K W n
@@ -475,8 +501,8 @@ abbreviation "subspace_obj \<equiv> vectorspace.vs VS W"
 lemma sub_vs: "vectorspace K subspace_obj"
   using subspace_axioms vectorspace.subspace_is_vs vs by blast
 
-definition orthogonal_carrier where
-  "orthogonal_carrier = {v \<in> V . (\<forall>w \<in> W. orthogonal v w)}"
+abbreviation orthogonal_carrier where
+  "orthogonal_carrier \<equiv> {v \<in> V . (\<forall>w \<in> W. orthogonal v w)}"
 
 lemma orthogonal_subspace: "subspace K orthogonal_carrier VS"
   sorry

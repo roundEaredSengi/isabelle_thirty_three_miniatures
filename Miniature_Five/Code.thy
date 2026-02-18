@@ -31,24 +31,26 @@ proof -
   then show ?thesis using i_prop by simp
 qed
 
-lemma finite[simp]: "finite C"
+lemma finite[simp]: "finite words"
 proof -
   obtain a b where ab_props: "a \<in> A" "b \<in> A" "a \<noteq> b"
     using cardA
     by (metis One_nat_def card_le_Suc0_iff_eq code_axioms code_def linorder_not_less)
 
-  moreover have "{ list_of_vec w | w . w \<in> C } \<subseteq> { l::'a list . length l = n \<and> set l \<subseteq> A}"
-    using code_axioms code_def[of A n C] set_list_of_vec by fastforce
+  moreover have "{ list_of_vec w | w . w \<in> words } \<subseteq> { l::'a list . length l = n \<and> set l \<subseteq> A}"
+    using set_list_of_vec by fastforce
   moreover have "finite { l::'a list . length l = n \<and> set l \<subseteq> A}"
     using lists_of_finite_set[of A] code_axioms code_def[of A n C] by presburger
-  ultimately have "finite { list_of_vec w | w . w \<in> C }" 
+  ultimately have "finite { list_of_vec w | w . w \<in> words }" 
     using finite_subset map_finite by blast
-  then have "finite { vec_of_list l | l . l \<in> { list_of_vec w | w . w \<in> C } }"
+  then have "finite { vec_of_list l | l . l \<in> { list_of_vec w | w . w \<in> words } }"
     using map_finite by simp
-  moreover have "C = { vec_of_list (list_of_vec w) | w . w \<in> C}" by (simp add: vec_list)
-  then have "C = { vec_of_list l | l . l \<in> { list_of_vec w | w . w \<in> C } }" by auto
+  moreover have "words = { vec_of_list (list_of_vec w) | w . w \<in> words}" by (simp add: vec_list)
+  then have "words = { vec_of_list l | l . l \<in> { list_of_vec w | w . w \<in> words } }" by blast
   ultimately show ?thesis by argo
 qed
+
+corollary finite_code[simp]: "finite C" using words_subs finite by (rule finite_subset)
 
 definition hamming_distance :: "'a vec \<Rightarrow> 'a vec \<Rightarrow> nat" where
   "hamming_distance u v = card {i \<in> {0..<n} . u$i \<noteq> v$i}"
@@ -71,7 +73,7 @@ qed
 lemma distances_finite:
   "finite {hamming_distance (fst p) (snd p) | p . p \<in> C \<times> C \<and> fst p \<noteq> snd p}"
 proof -
-  have "finite (C \<times> C)" using finite by blast
+  have "finite (C \<times> C)" using finite_code by blast
   then show ?thesis by (rule map_finite)
 qed
 
@@ -87,7 +89,7 @@ proof -
   then have "card {p \<in> C \<times> C . fst p \<noteq> snd p} = card ((C \<times> C) - {p \<in> C \<times> C . fst p = snd p})" by presburger
   also have "\<dots> = card ((C \<times> C) - {(x, x) | x . x \<in> C})"
     by (metis (no_types, lifting) SigmaE SigmaI split_pairs)
-  also have "\<dots> = card (C \<times> C) - card C" using dup_subset dup_card finite card_Diff_subset finite_subset
+  also have "\<dots> = card (C \<times> C) - card C" using finite_code dup_subset dup_card finite card_Diff_subset finite_subset
     by (metis (no_types, lifting) finite_SigmaI)
   also have "\<dots> = (card C) * (card C) - card C"
     by (metis card_cartesian_product)

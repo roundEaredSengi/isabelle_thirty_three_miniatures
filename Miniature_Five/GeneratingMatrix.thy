@@ -26,20 +26,49 @@ definition (in linear_code) parity_check_matrix:: "'a mat \<Rightarrow> bool"
 
 
 lemma (in linear_code) orthogonal_linear_code:
-  shows
     "linear_code F orthogonal_carrier n"
-(*proof -
-  have "induced_subspace F orthogonal_carrier n" sorry
+proof -
+  have "orthogonal_carrier \<subseteq> words" by auto
+  have "finite orthogonal_carrier" using finite by fastforce
 
+  have "induced_subspace F orthogonal_carrier n" sorry
   moreover have "code (carrier F) n orthogonal_carrier"
-  proof (standard, unfold orthogonal_carrier_def, simp add: finite_alphabet assms, auto)
-    assume "\<not> Suc 0 < card {v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E \<and> (\<forall>x\<in>C. local.orthogonal v x)}"
-    then have "card {v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E \<and> (\<forall>x\<in>C. local.orthogonal v x)} \<le> 1"
+  proof (standard, simp add: finite_alphabet, auto)
+    assume "\<not> Suc 0 < card orthogonal_carrier"
+    then have card: "card orthogonal_carrier \<le> 1"
       by linarith
-    
+    moreover have "zero_vec \<in> orthogonal_carrier"
+      using zero_orthogonal zero_vec_in_v words_subs by auto
+    then have "{zero_vec} \<subseteq> orthogonal_carrier" by simp
+    then have "card {zero_vec} \<le> card orthogonal_carrier"
+      using \<open>finite orthogonal_carrier\<close> card_mono
+      by blast
+    ultimately have "{zero_vec} = orthogonal_carrier"
+      using \<open>{zero_vec} \<subseteq> orthogonal_carrier\<close> \<open>finite orthogonal_carrier\<close>
+      by (simp add: card_subset_eq)
+
+    moreover have "C \<subseteq> induced_subspace.orthogonal_carrier F orthogonal_carrier n" proof
+      fix x
+      assume "x \<in> C"
+
+      moreover have "\<forall>w \<in> orthogonal_carrier. orthogonal x w" proof
+        fix w
+        assume "w \<in> orthogonal_carrier"
+        then have "\<forall>u\<in>C. local.orthogonal w u" by simp
+        then show "orthogonal x w" using \<open>x \<in> C\<close> orthogonal_symm by metis
+      qed
+
+      ultimately show "x \<in> induced_subspace.orthogonal_carrier F orthogonal_carrier n"
+        using words_subs by blast
+    qed (* This is the wrong way, we need the other subset direction...*)
+    moreover have "induced_subspace.orthogonal_carrier F {zero_vec} n = V"
+      using orthogonal_symm zero_orthogonal by auto
+    ultimately have "C = V" sorry
+
+
 
   ultimately show ?thesis using linear_code_def by metis
-qed*) sorry
+qed
 
 lemma (in linear_code) parity_check:
   assumes
