@@ -3,32 +3,21 @@ theory Proof_Method_Scratch
           "HOL-Eisbach.Eisbach_Tools"
           "Combinatorics_Words.CoWBasic"
           "Miniature_Two"
+          "Stochastic_Matrices.Eigenspace"
 
 begin 
 
-method unfold_many_things =
-  (
-    unfold+
-  )
+method split_iff = (rule iffD1, simp, rule iffD2, simp, goal_cases)
 
-interpretation sequence_space: vectorspace reals fib_space
-proof (unfold_many_things)
+lemma "card {x,y} = 1 \<Longrightarrow> x = y"
+  by (metis mem_simps(2) mem_simps(1) card_1_singletonE)
 
-
-
-method root_prover = (
-    (unfold insert_iff),
-    (elim disjE emptyE)
-    )
-
-lemma "u \<in> {x,y} \<Longrightarrow> P u"
-  apply(root_prover)
+lemma test:
+  assumes X: 
+    "Q \<longrightarrow> P"
+    Q
+  shows P
+  apply (match X in I : "Q \<longrightarrow> P" and I': Q \<Rightarrow> \<open>insert mp [OF I I']\<close>)
   oops
-
-method dest_conj =
-  (match conclusion in "A \<and> B" for A B \<Rightarrow> \<open>cases \<open>A \<and> B\<close>; simp\<close>)
-
-lemma "A \<and> B \<longrightarrow> A"
-  apply dest_conj
 
 end
