@@ -6,4 +6,4 @@ session Thirty_Three = Fishers_Inequality +
     Miniature_Three
     Miniature_Five
 
-    "Miniature_Five/Code"
+    "Miniature_Five/HammingCode"

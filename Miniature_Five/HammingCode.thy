@@ -5,19 +5,25 @@ begin
 hide_const (open) Matrix.scalar_prod
 hide_const (open) Matrix.mult_mat_vec
 
-lemma (in induced_vs) matrix_mul:
-  assumes
-    "dim_row A = n"
-  shows
-    "mult_mat_vec A v = (\<Oplus>\<^bsub>VS\<^esub>i \<in> {0..<dim_col A}. v $ i \<otimes>\<^bsub>VS\<^esub> (col A i))"
-  sorry
-
 lemma (in field) matrix_mul_idx:
   assumes
     "i \<in> {0..<dim_row A}"
+    "dim_vec v = dim_col A"
   shows
-    "mult_mat_vec A v $ i = (\<Oplus>\<^bsub>R\<^esub>j \<in> {0..<dim_col A}. v $ j \<otimes>\<^bsub>R\<^esub> (col A j $ i))"
-  sorry
+    "mult_mat_vec A v $ i = (\<Oplus>j \<in> {0..<dim_col A}. v $ j \<otimes> (col A j $ i))"
+proof -
+  have "mult_mat_vec A v $ i = vec (dim_row A) (\<lambda> i. row A i \<bullet> v) $ i"
+    unfolding mult_mat_vec_def by presburger
+  also have "\<dots> = (\<lambda> i. row A i \<bullet> v) i"
+    using assms by simp
+  also have "\<dots> = row A i \<bullet> v"
+    by presburger
+  ultimately have "mult_mat_vec A v $ i = (\<Oplus>j\<in>{0..<dim_col A}. row A i $ j \<otimes> v $ j)"
+    unfolding scalar_prod_def using assms by presburger
+  also have "\<dots> = (\<Oplus>j\<in>{0..<dim_col A}. (A $$ (i, j)) \<otimes> v $ j)"
+    unfolding row_def try
+  also have "\<dots> = (\<Oplus>j\<in>{0..<dim_col A}. col A j $ i \<otimes> v $ j)"
+    using assms try
 
 abbreviation gf2_ring where
   "gf2_ring \<equiv> \<lparr> 
@@ -33,7 +39,6 @@ term "(\<lambda>i. 0)(1 := 2)"
 
 fun nth_gf2_vec:: "nat \<Rightarrow> nat \<Rightarrow> gf2 vec" where
   "nth_gf2_vec 0 n = vec 0 (\<lambda>i. 0)"
-| "nth_gf2_vec d 0 = vec d (\<lambda>i. 0)"
 | "nth_gf2_vec d n = vec d ((\<lambda>i. nth_gf2_vec (d-1) (n div 2) $ (i - 1))(0 := (if (n mod 2 = 0) then 0 else 1)))"
 
 lemma nth_gf2_vec_len:
@@ -54,65 +59,89 @@ proof -
   qed
 qed
 
-lemma nonfirst_vec_nonzero:
-    "n > 0 \<Longrightarrow> n < 2^(d+1) \<Longrightarrow> nth_gf2_vec (d + 1) n \<noteq> zero_vec (d+1)"
-proof (induction d arbitrary: n)
-  case 0
-  assume "n < 2^(0+1)"
-  then have "n < 2" by simp
-  show "nth_gf2_vec (0 + 1) n \<noteq> zero_vec (0 + 1)" proof (rule ccontr)
-    assume "\<not> nth_gf2_vec (0 + 1) n \<noteq> zero_vec (0 + 1)"
-    then have "nth_gf2_vec 1 n = zero_vec 1" by algebra
-    then have "nth_gf2_vec 1 n $ 0 = zero_vec 1 $ 0" by presburger
-    then have "nth_gf2_vec 1 n $ 0 = 0" using zero_vec_def[of 1] by simp
-    then have "n mod 2 = 0" using 0 nth_gf2_vec.simps(3)[of 0 "n-1"] Nat.lessE by fastforce
-    then have "n = 0" using \<open>n < 2\<close> by simp
-    then show False using 0 by presburger
+lemma nth_gf2_vec_first_entry:
+  assumes
+    "d > 0"
+  shows
+    "nth_gf2_vec d n $ 0 = (if n mod 2 = 0 then 0 else 1)"
+proof -
+    have "(nth_gf2_vec d n $ 0) = ((\<lambda>i. nth_gf2_vec (d-1) (n div 2) $ (i - 1))(0 := (if (n mod 2 = 0) then 0 else 1))) 0"
+      using assms nth_gf2_vec.simps(2) gr0_conv_Suc
+      using assms by force
+    then show ?thesis by simp
   qed
-next
+
+lemma nth_gf2_vec_tail:
+  assumes
+    "d > 0"
+    "i \<in> {1..<d}"
+  shows
+    "nth_gf2_vec d n $ i = nth_gf2_vec (d-1) (n div 2) $ (i-1)"
+proof -
+  have "nth_gf2_vec d n $ i = vec d ((\<lambda>i. nth_gf2_vec (d-1) (n div 2) $ (i - 1))(0 := (if (n mod 2 = 0) then 0 else 1))) $ i"
+    using assms nth_gf2_vec.simps(2)[of "d - 1" n] by simp
+  also have "\<dots> = ((\<lambda>i. nth_gf2_vec (d-1) (n div 2) $ (i - 1))(0 := (if (n mod 2 = 0) then 0 else 1))) i"
+    using assms by simp
+  also have "\<dots> = (\<lambda>i. nth_gf2_vec (d-1) (n div 2) $ (i - 1)) i"
+    using assms by auto
+  finally show ?thesis by satx
+qed
+
+lemma nth_gf2_vec_inj:
+  "inj_on (nth_gf2_vec d) {0..<2^d}"
+proof (induction d)
   case (Suc d)
-  assume "n < 2^(Suc d + 1)"
-  then have "n < 2^(d+2)" by simp
+  show ?case proof
+    fix x::nat and y::nat
+    assume bounds: "x \<in> {0..<2^(Suc d)}" "y \<in> {0..<2^(Suc d)}"
+    show "nth_gf2_vec (Suc d) x = nth_gf2_vec (Suc d) y \<Longrightarrow> x = y" proof (rule ccontr)
+      assume res_eq: "nth_gf2_vec (Suc d) x = nth_gf2_vec (Suc d) y"
+      assume "x \<noteq> y"
+      then consider "x mod 2 \<noteq> y mod 2" | "x div 2 \<noteq> y div 2"
+        by (metis div_mod_decomp)
+      then show False proof cases
+        case 1
+        then show ?thesis using nth_gf2_vec_first_entry[of "Suc d"] res_eq
+          by (metis not_mod_2_eq_1_eq_0 zero_less_Suc zero_neq_one)
+      next
+        case 2
+        moreover from res_eq have "\<forall>i \<in> {1..<(Suc d)}. nth_gf2_vec (Suc d) x $ i = nth_gf2_vec (Suc d) y $ i" using nth_gf2_vec_len by metis
+        then have "\<forall>i \<in> {1..<(Suc d)}. nth_gf2_vec d (x div 2) $ (i-1) = nth_gf2_vec d (y div 2) $ (i-1)" using nth_gf2_vec_tail[of "Suc d"] by simp
+        then have "\<forall>i \<in> {0..<d}. nth_gf2_vec d (x div 2) $ i = nth_gf2_vec d (y div 2) $ i" by force
+        then have "nth_gf2_vec d (x div 2) = nth_gf2_vec d (y div 2)" using nth_gf2_vec_len by auto
 
-  show "nth_gf2_vec (Suc d + 1) n \<noteq> zero_vec (Suc d + 1)" proof (rule ccontr)
-    assume "\<not> nth_gf2_vec (Suc d + 1) n \<noteq> zero_vec (Suc d + 1)"
-    then have "nth_gf2_vec (d + 2) n = zero_vec (d + 2)" by simp
-    then have "\<And>i. i < (d+2) \<Longrightarrow> nth_gf2_vec (d + 2) n $ i = zero_vec (d + 2) $ i" by simp
-    then have all_zero: "\<And>i. i < (Suc d+1) \<Longrightarrow> nth_gf2_vec (Suc d + 1) n $ i = 0" by simp
-
-    obtain m where "n = Suc m" using Suc Nat.lessE by metis
-
-    from all_zero have "nth_gf2_vec (d+2) n $ 0 = 0" using zero_vec_def[of 1] by simp
-    then have "nth_gf2_vec (Suc (d+1)) (Suc m) $ 0 = 0" using \<open>n = Suc m\<close> by simp
-    then have "(if ((Suc m) mod 2 = 0) then 0 else 1) = 0" by auto
-    then have "n mod 2 = 0" using \<open>n = Suc m\<close>
-      by (metis zero_neq_one)
-
-    from all_zero have "\<And>i. i < (Suc (d+1)) \<Longrightarrow> i > 0 \<Longrightarrow> nth_gf2_vec (Suc (d + 1)) n $ i = 0" by simp
-    from all_zero have nonz_idx: "\<And>i. i < (Suc (d+1)) \<Longrightarrow> i > 0 \<Longrightarrow> nth_gf2_vec (Suc (d + 1)) (Suc m) $ i = 0"
-      using \<open>n = Suc m\<close> by force
-    then have "nth_gf2_vec (Suc (d + 1)) (Suc m) = vec (Suc (d+1)) ((\<lambda>i. nth_gf2_vec (Suc (d+1) -1) ((Suc m) div 2) $ (i - 1))(0 := (if ((Suc m) mod 2 = 0) then 0 else 1)))" by simp
-    then have "nth_gf2_vec (Suc (d + 1)) (Suc m) = vec (Suc (d+1)) ((\<lambda>i. nth_gf2_vec (d+1) (n div 2) $ (i - 1))(0 := (if (n mod 2 = 0) then 0 else 1)))"
-      using \<open>n = Suc m\<close> by simp
-    then have "\<And>i. i < (Suc (d+1)) \<Longrightarrow> i > 0 \<Longrightarrow> nth_gf2_vec (d+1) (n div 2) $ (i - 1) = 0"
-      using nonz_idx by simp
-    then have "\<And>i. i < (d+1) \<Longrightarrow> nth_gf2_vec (d+1) (n div 2) $ (i) = 0"
-      by fastforce
-    then have rec_zero: "nth_gf2_vec (d+1) (n div 2) = zero_vec (d+1)"
-      using zero_vec_def nth_gf2_vec_len by auto
-
-    have "n div 2 = 0" proof (rule ccontr)
-      assume "n div 2 \<noteq> 0"
-      then have "n div 2 > 0" by linarith
-
-      have bound: "n div 2 < 2 ^ (d + 1)" using Suc by simp
-
-      show False using Suc.IH[OF \<open>n div 2 > 0\<close> bound] using rec_zero by satx
+        then have "x div 2 = y div 2" using Suc.IH bounds unfolding inj_on_def by simp
+        ultimately show False by satx
+      qed
     qed
-
-    from \<open>n div 2 = 0\<close> \<open>n mod 2 = 0\<close> have "n = 0" by simp
-    then show False using Suc by linarith
   qed
+qed simp
+
+lemma nonfirst_vec_nonzero:
+  assumes
+    "n > 0"
+    "n < 2^d"
+  shows
+    "nth_gf2_vec d n \<noteq> zero_vec d"
+proof -
+  have "n \<noteq> 0" using assms by simp
+  then have "nth_gf2_vec d n \<noteq> nth_gf2_vec d 0"
+    using nth_gf2_vec_inj[of d] assms
+    unfolding inj_on_def
+    by fastforce
+  moreover have "nth_gf2_vec d 0 = zero_vec d"  proof (induction d)
+    case (Suc d)
+    have "\<forall> i \<in> {1..<(Suc d)}. nth_gf2_vec (Suc d) 0 $ i = nth_gf2_vec d 0 $ (i - 1)"
+      using nth_gf2_vec_tail by simp
+    then have "\<forall> i \<in> {1..<(Suc d)}. nth_gf2_vec (Suc d) 0 $ i = zero_vec d $ (i - 1)"
+      using Suc.IH by algebra
+    then have "\<forall> i \<in> {1..<(Suc d)}. nth_gf2_vec (Suc d) 0 $ i = 0"
+      by fastforce
+    moreover have "nth_gf2_vec (Suc d) 0 $ 0 = 0"
+      using nth_gf2_vec_first_entry by simp
+    ultimately show ?case by auto
+  qed auto
+  ultimately show ?thesis by metis
 qed
 
 abbreviation hamming_parity_columns where
@@ -173,6 +202,10 @@ have comm[simp]: "comm_monoid (add_monoid gf2_ring)"
     finally show ?case by simp
   qed
 qed
+
+lemma gf2_exhaust: "x \<in> {0::gf2,1}"
+  using Abs_gf2_cases[of x "Abs_gf2 (Rep_gf2 x) \<in> {0,1}"] Rep_gf2_inverse[of x]
+  by (metis insert_iff one_gf2_def singleton_iff zero_gf2_def)
 
 lemma non_zero_places:
   assumes
@@ -275,13 +308,51 @@ proof (rule ccontr)
     have "i+1 > 0" by linarith
     moreover have "i+1 < 2^n" using i by simp
     ultimately have False using nonfirst_vec_nonzero[of "i+1" "n-1"] using i
-      by (metis add.commute add_diff_inverse_nat bot_nat_0.not_eq_extremum less_one power_0
-          zero)
+      using nonfirst_vec_nonzero zero by presburger
 
     then show False using zero by satx
   next
     case 3
-    then show ?thesis sorry
+    then have "card {i \<in> {0..<m}. \<zero>\<^bsub>CS\<^esub> $ i \<noteq> v $ i} = 2"
+      unfolding hamming_distance_def
+      by satx
+    moreover have "{i \<in> {0..<m}. \<zero>\<^bsub>CS\<^esub> $ i \<noteq> v $ i} = {i \<in> {0..<m}. v $ i \<noteq> \<zero>\<^bsub>CS\<^esub> $ i}"
+      by metis
+    then have "{i \<in> {0..<m}. \<zero>\<^bsub>CS\<^esub> $ i \<noteq> v $ i} = {i \<in> {0..<m}. v $ i \<noteq> 0}"
+      unfolding VS zero_vec_def
+      by fastforce
+    ultimately have card: "card {i \<in> {0..<m}. v$i \<noteq> 0} = 2"
+      by argo
+    then obtain i j where ij: "v $ i \<noteq> 0" "v $ j \<noteq> 0" "i \<in> {0..<m}" "j \<in> {0..<m}" "i \<noteq> j"
+      by (smt (verit) card_2_iff' mem_Collect_eq)
+    then have "card ({i \<in> {0..<m}. v$i \<noteq> 0} - {i,j}) = 0"
+      using card by simp
+    then have other_zero: "\<And>k. k \<in> {0..<m} \<Longrightarrow> k \<noteq> i \<Longrightarrow> k \<noteq> j \<Longrightarrow> v$k = 0"
+      by auto
+
+
+    have "\<And>l. l \<in> {0..<n} \<Longrightarrow> nth_gf2_vec n (i+1) $ l = nth_gf2_vec n (j+1) $ l" proof -
+      fix l
+      assume "l \<in> {0..<n}"
+      then have "(\<Sum>k \<in> {0..<m}. v $ k * (nth_gf2_vec n (k+1) $ l)) = 0"
+        using orth_sum by simp
+      then have "(\<Sum>k \<in> {0..<m} - {i,j}. v $ k * (nth_gf2_vec n (k+1) $ l)) + (\<Sum>k \<in> {i,j}. v $ k * (nth_gf2_vec n (k+1) $ l)) = 0"
+        by (metis (lifting) empty_subsetI finite_lessThan ij(3,4) insert_subset lessThan_atLeast0 sum.subset_diff)
+      then have "(\<Sum>k \<in> {i,j}. v $ k * (nth_gf2_vec n (k+1) $ l)) = 0"
+        using other_zero by auto
+      then have "v$i * (nth_gf2_vec n (i+1) $ l) + v$j * (nth_gf2_vec n (j+1) $ l) = 0"
+        using ij by auto
+      moreover have "v$i = 1" "v$j = 1" using ij gf2_exhaust by auto
+      ultimately have "(nth_gf2_vec n (i+1) $ l) + (nth_gf2_vec n (j+1) $ l) = 0" by simp
+      then show "(nth_gf2_vec n (i+1) $ l) = (nth_gf2_vec n (j+1) $ l)" using plus_gf2_def minus_gf2_def by simp
+    qed
+    then have "nth_gf2_vec n (i+1) = nth_gf2_vec n (j+1)"
+      using nth_gf2_vec_len
+      by auto
+
+    moreover have "i + 1 \<in> {0..<2^n}" "j + 1 \<in> {0..<2^n}" using ij by auto
+    ultimately have "i + 1 = j + 1" using nth_gf2_vec_inj[of n] unfolding inj_on_def by metis
+    then show False using ij by linarith
   qed
 qed
 
