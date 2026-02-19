@@ -1,0 +1,9 @@
+[1] Config.pm:307> INFO - This is Biber 2.19
+[2] Config.pm:310> INFO - Logfile is 'presentation.blg'
+[439] biber:340> INFO - === Sun Sep  7, 2025, 21:30:48
+[531] Biber.pm:419> INFO - Reading 'presentation.bcf'
+[859] Biber.pm:979> INFO - Found 0 citekeys in bib section 0
+[929] bbl.pm:660> INFO - Writing 'presentation.bbl' with encoding 'UTF-8'
+[929] bbl.pm:763> INFO - Output to presentation.bbl
+[930] Biber.pm:131> WARN - The file 'presentation.bcf' does not contain any citations!
+[931] Biber.pm:133> INFO - WARNINGS: 1

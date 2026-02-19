@@ -1,0 +1,6 @@
+\babel@toc {english}{}\relax 
+\beamer@sectionintoc {1}{Motivation and Formalization Content}{2}{0}{1}
+\beamer@sectionintoc {2}{Exploring Libraries}{7}{0}{2}
+\beamer@sectionintoc {3}{Applying Isabelle/HOL}{9}{0}{3}
+\beamer@subsectionintoc {3}{1}{Eisbach}{10}{0}{3}
+\beamer@subsectionintoc {3}{2}{Weird Stuff}{11}{0}{3}

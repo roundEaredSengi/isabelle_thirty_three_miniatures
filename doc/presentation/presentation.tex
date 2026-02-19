@@ -1,0 +1,176 @@
+%% Beispiel-Präsentation mit LaTeX Beamer im KIT-Design
+%% entsprechend den Gestaltungsrichtlinien vom Februar 2025
+%%
+%% Siehe https://sdq.kastel.kit.edu/wiki/Dokumentvorlagen
+
+%% Beispiel-Präsentation
+\documentclass[en,navbaroff]{afvbeamer}
+% kitgrid,de,navbaroff,smallfoot,helvet
+
+\usepackage{hyphenat}
+\usepackage{svg}
+\usepackage{caption}
+\usepackage{comment}
+\usepackage{cancel}
+\usepackage{lipsum}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.16}
+\usetikzlibrary {mindmap}
+\usepackage{standalone}
+\usepackage{esvect}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usetikzlibrary{intersections}
+
+%% Gruppenlogo, muss im Verzeichnis logos/ liegen
+%% falls kein Gruppenlogo gewünscht, bitte \grouplogo{} aufrufen
+\grouplogo{}
+
+%% Gruppenname und Breite (Standard: 89 mm)
+\groupname{}
+%\groupnamewidth{89mm}
+
+% Beginn der Präsentation
+
+\title[Formalizing Thirty-Three Miniatures]{Formalizing Thirty-Three Miniatures}
+\subtitle{Implementing Applications of Linear Algebra in Isabelle/HOL}
+\author[David, Alicia]{David Kiefer \and Alicia Appelhagen}
+
+\date[25.02.2026]{25.02.2026}
+
+% Literatur 
+
+\usepackage[citestyle=authoryear,bibstyle=numeric,hyperref,natbib,backend=biber]{biblatex}
+\addbibresource{presentation.bib}
+\bibhang1em
+
+\newif\ifsol
+\solfalse %\soltrue to show solutions, \solfalse to hide them
+
+\newcommand{\negimplies}{%
+	\mathrel{{\ooalign{\hidewidth$\neg\phantom{=}$\hidewidth\cr$\implies$}}}}
+	
+\tikzset{
+	cross/.pic = {
+		\draw[rotate = 45] (-#1,0) -- (#1,0);
+		\draw[rotate = 45] (0,-#1) -- (0, #1);
+	}
+}
+
+\begin{document}
+	
+	\begin{frame}[title white horizontal]%'kitlogo=white' for a darker image
+		\titlepage
+	\end{frame}
+	
+	\section{Motivation and Formalization Content}
+	\begin{frame}{Formalization Goals}
+		\begin{minipage}[h]{0.33\textwidth}
+			\begin{orangeblock}{Formalizing Mathematics}
+				\begin{itemize}
+					\item Formalize proof strategies
+					\item Focus on linear algebra methods
+					\item Build on \cite{TODO book}
+					\item Benefits of proof assistants
+				\end{itemize}
+			\end{orangeblock}
+		\end{minipage}
+		\begin{minipage}[h]{0.33\textwidth}
+			\begin{blueblock}{Exploring Libraries}
+				\begin{itemize}
+					\item Build on existing formalizations
+					\item Archive of Formal Proofs + Isabelle/HOL
+					\item Extend linear algebra libraries
+				\end{itemize}
+			\end{blueblock}
+		\end{minipage}
+		\begin{minipage}[h]{0.33\textwidth}
+			\begin{yellowblock}{Applying Isabelle/HOL}
+				\begin{itemize}
+					\item Understand Isabelle features
+					\item Write reusable proofs
+				\end{itemize}
+			\end{yellowblock}
+		\end{minipage}
+	\end{frame}
+	
+	\begin{frame}{Formalizing Mathematics: Thirty-Three Miniatures}
+		\framesubtitle{Miniature 2}
+	\end{frame}
+	
+	\begin{frame}{Formalizing Mathematics: Thirty-Three Miniatures}
+		\framesubtitle{Miniature 3}
+	\end{frame}
+	
+	\begin{frame}{Formalizing Mathematics: Thirty-Three Miniatures}
+		\framesubtitle{Thirty-Three Miniatures: Miniature 5}
+	\end{frame}
+	
+	\begin{frame}{Formalizing Mathematics: Learnings}
+		\begin{orangeblock}{Theorem Provers Encourage Abstraction}
+			Abstraction makes proofs less verbose (less options for try, searching for relevant lemmas by hand is easier)
+		\end{orangeblock}
+		
+		\begin{orangeblock}{Concrete Examples Can Help ($\#$instantiateYourLocales)}
+			Concrete application of definitions avoids inconsistencies and hopeless proof attempts
+			\begin{itemize}
+				\item First oddtown definition did not require sets to be different in the oddtown predicate -> empty set, easy to prove?
+				\item Hamming Code definition issues: universal quantification over code words instead of all words -> proof broke?
+			\end{itemize}
+		\end{orangeblock}
+	\end{frame}
+
+	
+	\section{Exploring Libraries}
+	
+	\begin{frame}{Algebra Libraries in Isabelle/HOL}
+		\begin{itemize}
+			\item Algebraic structures as type classes (carrier = type universe) vs. locales (carrier explicitly given) [mention typedef, Rep and Abs]
+			\item using ring-scheme for objects that do not have a multiplication
+		\end{itemize}
+	\end{frame}
+	
+	\begin{frame}{Algebra Libraries in the Archive of Formal Proofs}
+		\begin{itemize}
+			\item Algebraic structures as type classes (carrier = type universe) vs. locales (carrier explicitly given) [mention typedef, Rep and Abs]
+			\item using ring-scheme for objects that do not have a multiplication
+		\end{itemize}
+	\end{frame}
+
+	\section{Applying Isabelle/HOL}
+
+	\begin{frame}{Useful Isabelle/HOL Features}
+		\begin{itemize}
+			\item Commands: proof-cases, try
+			\item Types: records, typedef
+			\item Update syntax: function updates (see Nitpick), record updates (subspace.vs)
+			\item Locales (\enquote{locale1 + ...} leads to automatic instantiations of locale1-parameters and directly yields the assumptions of locale1)
+			\item Proof structure: blocks (idk, the $\{...\}$ thingies) (according to some people this makes proofs less understandable so maybe not really that useful)
+			\item <subgoal-proof> tactic applies tactic to the remaining subgoals like the \enquote*{proof(...)} command in the beginning
+			\item meme: isabelle logo
+		\end{itemize}
+	\end{frame}
+	
+	\subsection{Eisbach}
+	\begin{frame}{Eisbach}
+		content... (TODO (cope))
+	\end{frame}
+	
+	\subsection{Weird Stuff}
+	\begin{frame}{Weird Stuff}
+		\begin{itemize}
+			\item leaving out \enquote{and}s in assumes/shows clauses changes the behaviour (leaving out the \enquote{shows} before multiple goals of a lemma leads to \enquote{thm} only referencing the first goal instead of all of them)
+			\item lemmas that are unexpectedly not found by try0 (e.g. $n > 0 \Rightarrow \exists m. n = Suc \; m$)
+			\item no error on forgotten \enquote{end} after theory/context
+			\item locale instantiations with fixed parameters with no assumptions curried?
+			\item \enquote{?} behind added locale \enquote*{name} makes \enquote*{name.def} optional (approved)
+			\item list comprehension $[1::nat..3::nat]$ becomes $int \; list$ but $[1::nat..<3::nat]$ gives $nat \; list$
+			\item Non-aligning AFP and Isabelle version
+			\item termination proofs for non-recursive functions (defined by \enquote{function}) optional but if not provided, simps rules are whack
+			\item termination using \enquote*{termination} by blast????
+		\end{itemize}
+	\end{frame}
+	
+\end{document}
