@@ -2,6 +2,9 @@ theory InducedVectorspace
   imports "../Thirty_Three_Miniatures_Root" Util CarriersetMatrix
 begin
 
+hide_const (open) Matrix.scalar_prod
+hide_const (open) Matrix.mult_mat_vec
+
 section \<open>Induced Vector Space \<^latex>\<open>\mathbb{F}^n\<close> of a Field F\<close>
 
 locale induced_vs =
@@ -391,9 +394,12 @@ proof (unfold standard_basis_vec_def, simp, safe)
   ultimately show "x \<in> E" using vec_set_def by simp
 qed
 
+lemma standard_basis_in_v: "standard_basis_n \<subseteq> V"
+  using standard_vec_in_v standard_basis_n_def by fastforce
+
 lemma lincomb_coords:
   fixes i :: nat and a :: "'a vec \<Rightarrow> 'a" and X :: "'a vec set"
-  assumes "i < n" and "a \<in> X \<rightarrow> E" and "finite X"
+  assumes "i < n" and "a \<in> X \<rightarrow> E" and "finite X" "X \<subseteq> V"
   shows "(\<Oplus>\<^bsub>VS\<^esub> x \<in> X. a x \<odot>\<^bsub>VS\<^esub> x) $ i = (\<Oplus>\<^bsub>F\<^esub> x \<in> X. (a x \<odot>\<^bsub>VS\<^esub> x) $ i)"
   using assms
 proof (induction "card X" arbitrary: i a X)
@@ -414,7 +420,43 @@ proof (induction "card X" arbitrary: i a X)
     by metis
 next
   case (Suc x)
-  then show ?case sorry
+
+  then obtain v where "v \<in> X"
+    by fastforce
+
+  note insert = abelian_monoid.finsum_insert[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+  thm induced_vs_vs.finsum_insert
+
+  have "(\<Oplus>\<^bsub>VS\<^esub> x \<in> X. a x \<odot>\<^bsub>VS\<^esub> x) $ i = (\<Oplus>\<^bsub>VS\<^esub> x \<in> (X - {v}) \<union> {v}. a x \<odot>\<^bsub>VS\<^esub> x) $ i"
+    using insert_absorb \<open>v \<in> X\<close>
+    by fastforce
+  moreover have "finite (X - {v})" using Suc by blast
+  moreover have "v \<notin> X - {v}" using Suc by blast
+  ultimately have "(\<Oplus>\<^bsub>VS\<^esub> x \<in> X. a x \<odot>\<^bsub>VS\<^esub> x) $ i = ((\<lambda>v. (a v \<odot>\<^bsub>VS\<^esub> v)) v \<oplus>\<^bsub>VS\<^esub> (\<Oplus>\<^bsub>VS\<^esub>v\<in>(X - {v}). (a v \<odot>\<^bsub>VS\<^esub> v))) $ i"
+    using induced_vs_vs.finsum_insert[OF _ \<open>v \<notin> X - {v}\<close>]
+    using Suc.prems(2,4) \<open>v \<in> X\<close> induced_vs_vs.summands_valid by force
+  then have "(\<Oplus>\<^bsub>VS\<^esub> x \<in> X. a x \<odot>\<^bsub>VS\<^esub> x) $ i = ((\<lambda>v. (a v \<odot>\<^bsub>VS\<^esub> v)) v $ i \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>VS\<^esub>v\<in>(X - {v}). (a v \<odot>\<^bsub>VS\<^esub> v)) $ i)"
+    using addition_def Suc by simp
+  moreover have "x = card (X - {v})" using \<open>v \<in> X\<close> Suc by simp
+  moreover have "a \<in> X - {v} \<rightarrow> E" using Suc(4) by blast
+  moreover have "X - {v} \<subseteq> V" using Suc(6) by auto
+  ultimately have "(\<Oplus>\<^bsub>VS\<^esub> x \<in> X. a x \<odot>\<^bsub>VS\<^esub> x) $ i = ((\<lambda>v. (a v \<odot>\<^bsub>VS\<^esub> v)) v $ i \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>v\<in>(X - {v}). (a v \<odot>\<^bsub>VS\<^esub> v) $ i))"
+    using Suc(1)[OF \<open>x = card (X - {v})\<close> Suc(3) \<open>a \<in> X - {v} \<rightarrow> E\<close> \<open>finite (X - {v})\<close>]
+    by presburger
+  then have "(\<Oplus>\<^bsub>VS\<^esub> x \<in> X. a x \<odot>\<^bsub>VS\<^esub> x) $ i = ((\<lambda>v. (a v \<odot>\<^bsub>VS\<^esub> v) $ i) v \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>v\<in>(X - {v}). (a v \<odot>\<^bsub>VS\<^esub> v) $ i))"
+    by satx
+  moreover have "\<And>v. v\<in>X \<Longrightarrow> (a v \<odot>\<^bsub>VS\<^esub> v) \<in> V"
+    using Suc(4) Suc(6) induced_vs_vs.smult_closed
+    using induced_vs_vs.summands_valid by force
+  then have "\<And>v. v\<in>X \<Longrightarrow> (a v \<odot>\<^bsub>VS\<^esub> v) $ i \<in> E" using Suc by simp
+  then have abc: "(\<lambda>v. (a v \<odot>\<^bsub>VS\<^esub> v) $ i) \<in> X - {v} \<rightarrow> E" by simp
+  moreover have "(a v \<odot>\<^bsub>VS\<^esub> v) $ i \<in> E" 
+    using \<open>\<And>v. v \<in> X \<Longrightarrow> a v \<odot>\<^bsub>VS\<^esub> v \<in> V\<close> \<open>v \<in> X\<close> Suc
+    by simp
+  then have def: "(\<lambda>v. (a v \<odot>\<^bsub>VS\<^esub> v) $ i) v \<in> E" by satx
+  ultimately show "(\<Oplus>\<^bsub>VS\<^esub> x \<in> X. a x \<odot>\<^bsub>VS\<^esub> x) $ i = (\<Oplus>\<^bsub>F\<^esub>v\<in>X. (a v \<odot>\<^bsub>VS\<^esub> v) $ i)"
+    using insert[OF \<open>finite (X - {v})\<close> \<open>v \<notin> X - {v}\<close> abc def]
+    using \<open>v \<in> X\<close> insert_Diff by force
 qed
 
 lemma finsum_standard_basis_entries:
@@ -557,7 +599,8 @@ proof -
       using zero_vec_def by simp
     moreover have 
       "\<forall>i \<in> {0..<n}. (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)"
-      using lincomb_coords[of _ a standard_basis_n] finsum_standard_basis_entries[of _ a] map fin
+      using lincomb_coords[of _ a standard_basis_n] finsum_standard_basis_entries[of _ a]
+      using standard_basis_in_v map(1) fin
       by simp
     ultimately have "\<forall>i \<in> {0..<n}.  a (standard_basis_vec i) = \<zero>\<^bsub>F\<^esub>"
       by simp
@@ -625,7 +668,95 @@ proof -
   next
     show "{v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E}
     \<subseteq> {induced_vs_vs.lincomb a A |a A. finite A \<and> A \<subseteq> standard_basis_n \<and> a \<in> A \<rightarrow> E}"
-      sorry
+    proof
+      fix v
+      assume "v \<in> V"
+      define A where "A = standard_basis_n"
+      define a where "a = (\<lambda>b. induced_vs_vs.scalar_prod v b)"
+
+      have "a \<in> A \<rightarrow> E"
+        unfolding A_def a_def
+        using induced_vs_vs.scalar_prod_closed
+        using standard_vec_in_v standard_basis_n_def \<open>v \<in> V\<close>
+        by auto
+      moreover have "v = induced_vs_vs.lincomb a A" proof -
+        have "\<And>i. i \<in> {0..<n} \<Longrightarrow> v$i = induced_vs_vs.lincomb a A $ i"
+        proof -
+          fix i
+          assume i: "i \<in> {0..<n}"
+
+          note cong = abelian_monoid.finsum_cong'[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+          note insert = abelian_monoid.finsum_insert[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+          note r_zero = abelian_monoid.r_zero[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+
+          have mult_equiv: "\<And>j. j \<in> {0..<n} \<Longrightarrow> (v $ j) \<otimes>\<^bsub>F\<^esub> ((standard_basis_vec i) $ j) = (if i = j then v $ j else \<zero>\<^bsub>F\<^esub>)"
+          proof -
+            fix j
+            assume j: "j \<in> {0..<n}"
+
+            have "(v $ j) \<otimes>\<^bsub>F\<^esub> ((standard_basis_vec i) $ j) = (v $ j) \<otimes>\<^bsub>F\<^esub> (if i = j then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>)"
+              using standard_basis_vec_def[of i]
+              using j by simp
+            also have "\<dots> = (if i = j then (v $ j) \<otimes>\<^bsub>F\<^esub> \<one>\<^bsub>F\<^esub> else (v $ j) \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>)"
+              by presburger
+            also have "\<dots> = (if i = j then (v $ j) else \<zero>\<^bsub>F\<^esub>)"
+              using monoid.r_one monoid_F j \<open>v \<in> V\<close> r_zero
+              by auto
+            finally have "(v $ j) \<otimes>\<^bsub>F\<^esub> ((standard_basis_vec i) $ j) = (if i = j then (v $ j) else \<zero>\<^bsub>F\<^esub>)"
+              by satx
+            then show "v $ j \<otimes>\<^bsub>F\<^esub> standard_basis_vec i $ j = (if i = j then v $ j else \<zero>\<^bsub>F\<^esub>)" by presburger
+          qed
+          have equiv_fun: "(\<lambda>j. if i = j then v $ j else \<zero>\<^bsub>F\<^esub>) \<in> {0..<n} \<rightarrow> E" using \<open>v \<in> V\<close> by auto
+
+       
+          have "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)"
+            using lincomb_coords[of _ a standard_basis_n] i \<open>a \<in> A \<rightarrow> E\<close>
+            using finsum_standard_basis_entries[of _ a] fin A_def
+            using standard_basis_in_v
+            by auto
+          also have "\<dots> = induced_vs_vs.scalar_prod v (standard_basis_vec i)"
+            using a_def by presburger
+          also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub>j \<in> {0..<n}. (v $ j) \<otimes>\<^bsub>F\<^esub> ((standard_basis_vec i) $ j))"
+            unfolding induced_vs_vs.scalar_prod_def
+            using standard_vec_in_v i
+            by simp
+          also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub>j \<in> {0..<n}. (if i = j then (v $ j) else \<zero>\<^bsub>F\<^esub>))"
+            using cong[OF _ equiv_fun mult_equiv, of "{0..<n}"]
+            by presburger
+          also have "\<dots> = (\<lambda>j. (if i = j then (v $ j) else \<zero>\<^bsub>F\<^esub>)) i \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>j \<in> {0..<n} - {i}. (if i = j then (v $ j) else \<zero>\<^bsub>F\<^esub>))"
+            using insert[of "{0..<n} - {i}" i "(\<lambda>j. (if i = j then (v $ j) else \<zero>\<^bsub>F\<^esub>))"] \<open>v \<in> V\<close>
+            using i
+            by (simp add: insert_absorb)
+          also have "\<dots> = (\<lambda>j. (if i = j then (v $ j) else \<zero>\<^bsub>F\<^esub>)) i \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>j \<in> {0..<n} - {i}. \<zero>\<^bsub>F\<^esub>)"
+            using cong[of "{0..<n} - {i}" "{0..<n} - {i}"]
+            by fastforce
+          also have "\<dots> = (\<lambda>j. (if i = j then (v $ j) else \<zero>\<^bsub>F\<^esub>)) i \<oplus>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>"
+            by fastforce
+          also have "\<dots> = (v $ i)"
+            using r_zero \<open>v \<in> V\<close> i
+            by simp
+          finally have "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = v $ i" .
+          moreover have "induced_vs_vs.lincomb a A $ i = (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i"
+            unfolding induced_vs_vs.lincomb_def A_def by metis
+          ultimately show "v $ i = induced_vs_vs.lincomb a A $ i" by presburger
+        qed
+        moreover have "A \<subseteq> V"
+          unfolding A_def standard_basis_n_def
+          using standard_vec_in_v
+          by blast
+        then have "dim_vec (induced_vs_vs.lincomb a A) = n"
+          using induced_vs_vs.lincomb_closed[OF _ \<open>a \<in> A \<rightarrow> E\<close>]
+          unfolding standard_vec_in_v A_def
+          by simp
+        ultimately show ?thesis
+          using \<open>v \<in> V\<close> induced_vs_vs.lincomb_def
+          by auto
+      qed
+      moreover have "A \<subseteq> standard_basis_n" using A_def by order
+      moreover have "finite A" using A_def fin by presburger
+      ultimately show "v \<in> {induced_vs_vs.lincomb a A |a A. finite A \<and> A \<subseteq> standard_basis_n \<and> a \<in> A \<rightarrow> E}"
+        by blast
+    qed
   qed
   ultimately show ?thesis
     unfolding induced_vs_vs.basis_def
