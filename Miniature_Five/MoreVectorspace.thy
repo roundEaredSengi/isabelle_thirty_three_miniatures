@@ -82,7 +82,7 @@ qed
 lemma (in subspace) max_lin_indpt_subset:
   assumes "vectorspace.fin_dim K V"
   defines 
-    "P \<equiv> (\<lambda>B. B \<subseteq> W \<and> module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) B)"
+    "P \<equiv> (\<lambda>B. finite B \<and> B \<subseteq> W \<and> module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) B)"
   shows "\<exists>A. finite A \<and> maximal A P"
 proof -
   have "\<nexists>A v. A \<subseteq> {} \<and> v \<in> A"
@@ -92,9 +92,11 @@ proof -
     by (metis module.submodule_is_module submod submodule.module)
   moreover have "{} \<subseteq> W"
     by blast
+  moreover have "finite {}"
+    by simp
   ultimately have "P {}"
     unfolding P_def
-    by satx
+    by metis
   moreover have "\<And>A. P A \<Longrightarrow> finite A \<and> card A \<le> vectorspace.dim K V"
     using subspace_lin_indpt_card_bounded assms
     unfolding P_def
@@ -107,11 +109,208 @@ qed
 lemma (in subspace) add_lin_indpt_vec:
   fixes X :: "'c set" 
   defines 
-    "P \<equiv> (\<lambda>B. B \<subseteq> W \<and> module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) B)"
+    "P \<equiv> (\<lambda>B. finite B \<and> B \<subseteq> W \<and> module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) B)"
   assumes "P X" and "\<not> W \<subseteq> module.span K (V\<lparr>carrier:=W\<rparr>) X"
   shows "\<not> maximal X P"
-  sorry
+proof -
+  have mod: "Module.module K (V\<lparr>carrier := W\<rparr>)"
+      by (metis submod module.submodule_is_module submodule.module)
 
+  have "\<exists>w \<in> W. w \<notin> module.span K (V\<lparr>carrier:=W\<rparr>) X"
+    using assms
+    by auto
+  then obtain w :: 'c where "w \<in> W" and not_span: "w \<notin> module.span K (V\<lparr>carrier:=W\<rparr>) X"
+    by blast
+  moreover have "X \<subseteq> module.span K (V\<lparr>carrier:=W\<rparr>) X"
+    using assms
+    unfolding P_def
+    sorry
+  ultimately have "w \<notin> X"
+    by auto
+
+  have "module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) (X \<union> {w})"
+  proof (safe)
+    assume ldep: "module.lin_dep K (V\<lparr>carrier := W\<rparr>) (X \<union> {w})"
+    have "X \<subseteq> W"
+      using assms
+      by metis
+    from ldep have "\<exists>A a v. 
+      (finite A \<and> A \<subseteq> X \<union> {w} \<and> (a \<in> (A\<rightarrow>carrier K)) \<and> 
+        (module.lincomb (V\<lparr>carrier:=W\<rparr>) a A = \<zero>\<^bsub>V\<lparr>carrier:=W\<rparr>\<^esub>) \<and> (v \<in> A) \<and> (a v \<noteq> \<zero>\<^bsub>K\<^esub>))"
+      using module.lin_dep_def[of K "V\<lparr>carrier := W\<rparr>" "X \<union> {w}", OF mod]
+      by satx
+    then obtain A :: "'c set" and a :: "'c \<Rightarrow> 'a" and v :: 'c where
+      fin: "finite A" and sub: "A \<subseteq> X \<union> {w}" and pi: "a \<in> (A\<rightarrow>carrier K)" and 
+      elt: "v \<in> A" and nzero: "a v \<noteq> \<zero>\<^bsub>K\<^esub>" and
+      triv: "module.lincomb (V\<lparr>carrier:=W\<rparr>) a A = \<zero>\<^bsub>V\<lparr>carrier:=W\<rparr>\<^esub>"
+      by metis
+
+    have "w \<in> A"
+    proof (rule ccontr)
+      assume "w \<notin> A"
+      then have "A \<subseteq> X"
+        using \<open>A \<subseteq> X \<union> {w}\<close>
+        by auto
+      then have "\<exists>A a v. 
+        (finite A \<and> A \<subseteq> X \<and> (a \<in> (A\<rightarrow>carrier K)) \<and> 
+        (module.lincomb (V\<lparr>carrier:=W\<rparr>) a A = \<zero>\<^bsub>V\<lparr>carrier:=W\<rparr>\<^esub>) \<and> (v \<in> A) \<and> (a v \<noteq> \<zero>\<^bsub>K\<^esub>))"
+        using fin pi elt nzero triv
+        by metis
+      then have "module.lin_dep K (V\<lparr>carrier := W\<rparr>) X"
+        using module.lin_dep_def[of K "V\<lparr>carrier := W\<rparr>" X, OF mod]
+        by metis
+      thus False
+        using \<open>P X\<close>
+        unfolding P_def
+        by satx
+    qed
+    moreover from this have finw: "finite (A - {w})"
+      using fin 
+      by simp
+    moreover have car_w: "A - {w} \<subseteq> carrier (V\<lparr>carrier := W\<rparr>)"
+      using sub \<open>P X\<close>
+      unfolding P_def
+      by auto
+    moreover have "a \<in> A - {w} \<union> {w} \<rightarrow> carrier K"
+      using pi \<open>w \<in> A\<close>
+      by auto
+    moreover have "w \<notin> A - {w}"
+      by simp
+    moreover have "w \<in> carrier (V\<lparr>carrier := W\<rparr>)"
+      using \<open>w \<in> W\<close>
+      by simp   
+    moreover have "A - {w} \<union> {w} = A"
+      using \<open>w \<in> A\<close>
+      by auto
+    ultimately have 
+      "module.lincomb (V\<lparr>carrier:=W\<rparr>) a A = 
+        (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w})"
+      using module.lincomb_insert[OF mod, of "A - {w}" a w]
+      by simp
+    hence "\<zero>\<^bsub>V\<lparr>carrier:=W\<rparr>\<^esub> = (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w})"
+      using triv
+      by metis
+
+    hence lincomb: "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> \<zero>\<^bsub>V\<^esub> = 
+      \<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> ((a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w}))"
+      by simp
+    have "a w \<in> carrier K"
+      using \<open>w \<in> W\<close> \<open>w \<in> A\<close> pi
+      by auto
+    hence car_elt: "a w \<odot>\<^bsub>V\<^esub> w \<in> carrier V"
+      using vs \<open>w \<in> W\<close>
+      unfolding Pi_def vectorspace_def Module.module_def module_axioms_def
+      by (meson ring_subset_carrier submod submodule.subset)
+    hence car_elt_minus: "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) \<in> carrier V"
+      by (meson vectorspace.additive_inverse_closed vs)
+    hence "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> \<zero>\<^bsub>V\<^esub> = \<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w)"  
+      using Module.module_def abelian_group.show_r_zero abelian_groupE vectorspace_def vs
+      by meson
+    hence lincomb2: "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w)= 
+      \<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> ((a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w}))"
+      using lincomb 
+      by argo
+    moreover have lincomb_carr: "module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w}) \<in> carrier V"
+      using sub \<open>P X\<close>
+      unfolding P_def
+      sorry
+    ultimately have 
+      "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> ((a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w})) =
+        (\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> ((a w \<odot>\<^bsub>V\<^esub> w)) \<oplus>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w}))"
+      using Module.module_def car_elt car_elt_minus
+      sorry
+    hence "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) =
+      (\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> ((a w \<odot>\<^bsub>V\<^esub> w)) \<oplus>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w}))"
+      using lincomb2
+      by metis
+    moreover have "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) \<oplus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) = \<zero>\<^bsub>V\<^esub>"
+      using car_elt
+      by (meson Module.module_def abelian_group.l_neg vectorspace_def vs)
+    ultimately have "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) = \<zero>\<^bsub>V\<^esub> \<oplus>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w})"
+      by simp
+    hence "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) = module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w})"
+      using lincomb_carr
+      by (metis Module.module_def abelian_group.show_l_zero abelian_groupE(2) vectorspace_def vs)
+    moreover have minus_rewrite: "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) = ((\<ominus>\<^bsub>K\<^esub> a w) \<odot>\<^bsub>V\<^esub> w)"
+      using \<open>a w \<in> carrier K\<close> \<open>w \<in> W\<close>
+      by (metis module.smult_l_minus ring_subset_carrier submod submodule.module submodule.subset)
+    ultimately have lincomb_w: "(\<ominus>\<^bsub>K\<^esub> a w) \<odot>\<^bsub>V\<^esub> w = module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w})"
+      by metis
+  
+    have "\<ominus>\<^bsub>K\<^esub> a w \<noteq> \<zero>\<^bsub>K\<^esub>"
+    proof (rule ccontr)
+      assume "\<not> \<ominus>\<^bsub>K\<^esub> a w \<noteq> \<zero>\<^bsub>K\<^esub>"
+      hence "\<ominus>\<^bsub>K\<^esub> a w = \<zero>\<^bsub>K\<^esub>"
+        by simp
+      thus False
+        sorry
+    qed
+    moreover have "\<ominus>\<^bsub>K\<^esub> a w \<in> carrier K"
+      using \<open>a w \<in> carrier K\<close>                     
+      by (meson Module.module_def cring.cring_simprules(3) mod)
+    ultimately have "\<ominus>\<^bsub>K\<^esub> a w \<in> Units K"
+      using vs unfolding vectorspace_def field_def field_axioms_def
+      by simp
+    hence "\<exists>x \<in> carrier K. x \<otimes>\<^bsub>K\<^esub> (\<ominus>\<^bsub>K\<^esub> a w) = \<one>\<^bsub>K\<^esub> \<and> (\<ominus>\<^bsub>K\<^esub> a w) \<otimes>\<^bsub>K\<^esub> x = \<one>\<^bsub>K\<^esub>"
+      unfolding Units_def
+      by simp
+    then obtain x :: 'a where x_car: "x \<in> carrier K" and one: "x \<otimes>\<^bsub>K\<^esub> (\<ominus>\<^bsub>K\<^esub> a w) = \<one>\<^bsub>K\<^esub>"
+      by blast
+
+    hence "x \<odot>\<^bsub>V\<^esub> ((\<ominus>\<^bsub>K\<^esub> a w) \<odot>\<^bsub>V\<^esub> w) = (x \<otimes>\<^bsub>K\<^esub> (\<ominus>\<^bsub>K\<^esub> a w)) \<odot>\<^bsub>V\<^esub> w"
+      using car_elt car_elt_minus \<open>w \<in> W\<close> \<open>\<ominus>\<^bsub>K\<^esub> a w \<in> carrier K\<close> vs submod
+      by (metis module.smult_assoc1 ring_subset_carrier submodule.subset vectorspace_def)
+    hence "x \<odot>\<^bsub>V\<^esub> ((\<ominus>\<^bsub>K\<^esub> a w) \<odot>\<^bsub>V\<^esub> w) = \<one>\<^bsub>K\<^esub> \<odot>\<^bsub>V\<^esub> w"
+      using one
+      by metis
+    moreover have "\<one>\<^bsub>K\<^esub> \<odot>\<^bsub>V\<^esub> w = w"
+      using \<open>w \<in> W\<close> vs submod
+      by (meson module.smult_one ring_subset_carrier submodule.subset vectorspace_def)
+    ultimately have lincomb_w': "w = x \<odot>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w})"
+      using lincomb_w 
+      by argo
+
+    have "module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w}) \<in> module.span K (V\<lparr>carrier:=W\<rparr>) (A-{w})"
+      using module.finite_span[OF mod, of "A - {w}", OF finw car_w] pi
+      unfolding Pi_def
+      by auto
+    hence 
+      "x \<odot>\<^bsub>V\<^esub> module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w}) \<in> module.span K (V\<lparr>carrier:=W\<rparr>) (A-{w})"
+      using module.span_is_submodule[of K "V\<lparr>carrier:=W\<rparr>" "A-{w}", OF mod car_w] x_car
+      unfolding submodule_def module_def
+      by simp
+  
+    hence "w \<in> module.span K (V\<lparr>carrier:=W\<rparr>) (A-{w})"
+      using lincomb_w'
+      by metis
+    moreover have "A - {w} \<subseteq> X"
+      using sub
+      by auto
+    ultimately have "w \<in> module.span K (V\<lparr>carrier:=W\<rparr>) X"
+      using module.span_is_monotone[OF mod, of "A-{w}" X]
+      by auto
+    thus False
+      using not_span
+      by blast
+  qed
+
+  hence "P (X \<union> {w})"
+    unfolding P_def
+    using \<open>w \<in> W\<close> assms
+    by simp
+  moreover have "X \<subseteq> X \<union> {w}"
+    by auto
+  moreover have "X \<noteq> X \<union> {w}"
+    using \<open>w \<notin> X\<close>
+    by auto
+  ultimately have "\<exists>B. X \<subseteq> B \<and> P B \<and> B \<noteq> X"
+    by metis
+  thus ?thesis
+    unfolding maximal_def
+    using assms
+    by metis
+qed
+  
 lemma (in subspace) subspace_has_basis:
   assumes "vectorspace.fin_dim K V"
   defines 
@@ -150,15 +349,6 @@ proof -
     using vectorspace.basis_def[of K "V\<lparr>carrier := W\<rparr>" B]
     by metis
 qed
-
-(*
-3) Lemma: Falls B ein linear unabhängiges subset von U ist und span(B) != U, 
-findest du ein u in U so, dass u nicht in span(B) und daher B + {u} linear unabhängig ist
-4) Lemma: Das maximale linear unabhängige subset B0 von U aus 2) muss ein generating set sein 
-(also eine Basis). span(B0) subset U is klar, U subset span(B0) folgt via Widerspruch: 
-Wenns kein generating set wäre könnte man wegen 3) noch mal ein größeres lin. unabh. set bauen, 
-Widerspruch zu maximality
-*)
 
 lemma (in subspace) fin_sub_dim:
   assumes "vectorspace.fin_dim K V"
