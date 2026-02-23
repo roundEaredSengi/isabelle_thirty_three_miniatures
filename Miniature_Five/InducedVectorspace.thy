@@ -377,7 +377,117 @@ proof (unfold inj_on_def, safe)
 qed
 
 lemma induced_basis_n: "induced_vs_vs.basis standard_basis_n"
-  sorry
+proof -
+
+  have "standard_basis_n \<subseteq> V"
+    unfolding standard_basis_n_def standard_basis_vec_def vec_set_def
+    by fastforce
+  moreover have "induced_vs_vs.lin_indpt standard_basis_n" proof (rule ccontr)
+    assume "\<not> induced_vs_vs.lin_indpt standard_basis_n"
+    then have "induced_vs_vs.lin_dep standard_basis_n" by satx
+    moreover have "finite standard_basis_n"
+      using standard_basis_n_def
+      by simp
+    ultimately have "\<exists>a v. a \<in> standard_basis_n \<rightarrow> E \<and>
+          induced_vs_vs.lincomb a standard_basis_n =
+          \<zero>\<^bsub>VS\<^esub> \<and>
+          v \<in> standard_basis_n \<and> a v \<noteq> \<zero>\<^bsub>F\<^esub>"
+      using induced_vs_vs.finite_lin_dep \<open>standard_basis_n \<subseteq> V\<close>
+      by simp
+    then obtain a v where
+      "a \<in> standard_basis_n \<rightarrow> E"
+      "induced_vs_vs.lincomb a standard_basis_n = \<zero>\<^bsub>VS\<^esub>"
+      "v \<in> standard_basis_n"
+      "a v \<noteq> \<zero>\<^bsub>F\<^esub>"
+      by blast
+
+    then have "induced_vs_vs.lincomb a standard_basis_n = (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b)"
+      unfolding "induced_vs_vs.lincomb_def"
+      by auto
+    then have "\<And>i. i < n \<Longrightarrow> (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)"
+    proof -
+      fix i
+      assume "i < n"
+
+      have "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i)" sorry
+      also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. a b \<otimes>\<^bsub>F\<^esub> b $ i)" sorry
+      also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. if b = standard_basis_vec i then a b else \<zero>\<^bsub>F\<^esub>)" sorry
+      also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> (standard_basis_n - {standard_basis_vec i}) \<union> {standard_basis_vec i}.
+        if b = standard_basis_vec i then a b else \<zero>\<^bsub>F\<^esub>)" sorry
+      also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> {standard_basis_vec i}. a b)" sorry
+      also have "\<dots> = a (standard_basis_vec i)" sorry
+      finally show "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)" .
+    qed
+    
+    then show False sorry
+  qed
+  moreover have "induced_vs_vs.span standard_basis_n = V"
+    unfolding induced_vs_vs.span_def
+  proof
+    show "{induced_vs_vs.lincomb a A |a A. finite A \<and> A \<subseteq> standard_basis_n \<and> a \<in> A \<rightarrow> E}
+    \<subseteq> {v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E}" proof
+      fix x
+      assume "x \<in> {induced_vs_vs.lincomb a A |a A. finite A \<and> A \<subseteq> standard_basis_n \<and> a \<in> A \<rightarrow> E}"
+      then obtain a A where Aa_props:
+        "x = induced_vs_vs.lincomb a A"
+        "finite A"
+        "A \<subseteq> standard_basis_n"
+        "a \<in> A \<rightarrow> E"
+        by blast
+
+      then have "x = (\<Oplus>\<^bsub>VS\<^esub>  v\<in>A. (a v \<odot>\<^bsub>VS\<^esub> v))"
+        unfolding induced_vs_vs.lincomb_def by satx
+      moreover have "(\<Oplus>\<^bsub>VS\<^esub>  v\<in>A. (a v \<odot>\<^bsub>VS\<^esub> v)) \<in> carrier VS"
+        using \<open>finite A\<close> \<open>A \<subseteq> standard_basis_n\<close> \<open>a \<in> A \<rightarrow> E\<close>
+      proof (induction "card A" arbitrary: A)
+        case 0
+        fix A
+        assume "0 = card (A::'a vec set)"
+        moreover assume "finite A"
+        ultimately have "A = {}" by simp
+        then have "(\<Oplus>\<^bsub>VS\<^esub> v\<in>A. (a v \<odot>\<^bsub>VS\<^esub> v)) = \<zero>\<^bsub>VS\<^esub>"
+          using induced_vs_vs.finsum_infinite
+          using induced_vs_vs.finsum_empty
+          by auto
+        then show "(\<Oplus>\<^bsub>VS\<^esub> v\<in>A. (a v \<odot>\<^bsub>VS\<^esub> v)) \<in> carrier VS"
+          using zero_vec_in_v
+          by simp
+      next
+        case (Suc xa)
+        then obtain b where b_prop: "b \<in> A" by fastforce
+        then have "A = (A - {b}) \<union> {b}" by auto
+        then have "(\<Oplus>\<^bsub>VS\<^esub>  v\<in>A. (a v \<odot>\<^bsub>VS\<^esub> v)) = (\<Oplus>\<^bsub>VS\<^esub>  v\<in>(A - {b}) \<union> {b}. (a v \<odot>\<^bsub>VS\<^esub> v))"
+          by presburger
+        moreover have aa: "\<And>v. v \<in> A \<Longrightarrow> a v \<in> E" using Suc by auto
+        then have "\<And>v. v \<in> A \<Longrightarrow> (a v \<odot>\<^bsub>VS\<^esub> v) \<in> V"
+          using induced_vs_vs.smult_closed \<open>standard_basis_n \<subseteq> V\<close> Suc(4)
+          by fastforce
+        then have "(\<lambda>v. (a v \<odot>\<^bsub>VS\<^esub> v)) \<in> A - {b} \<rightarrow> carrier VS" "(a b \<odot>\<^bsub>VS\<^esub> b) \<in> carrier VS" using b_prop by simp_all
+        ultimately have "(\<Oplus>\<^bsub>VS\<^esub>  v\<in>A. (a v \<odot>\<^bsub>VS\<^esub> v)) = (a b \<odot>\<^bsub>VS\<^esub> b) \<oplus>\<^bsub>VS\<^esub> (\<Oplus>\<^bsub>VS\<^esub>  v\<in>A - {b}. (a v \<odot>\<^bsub>VS\<^esub> v))"
+          using induced_vs_vs.finsum_insert[of "A - {b}" b]
+          using Suc
+          by simp
+        moreover have "card (A - {b}) = xa" using b_prop Suc by simp
+        then have "(\<Oplus>\<^bsub>VS\<^esub>  v\<in>A - {b}. (a v \<odot>\<^bsub>VS\<^esub> v)) \<in> carrier VS"
+          using Suc
+          by auto
+        ultimately show ?case
+          using \<open>(a b \<odot>\<^bsub>VS\<^esub> b) \<in> carrier VS\<close> Suc induced_vs_vs.a_closed
+          by simp
+      qed
+
+      ultimately show "x \<in> V" by simp
+    qed
+  next
+    show "{v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E}
+    \<subseteq> {induced_vs_vs.lincomb a A |a A. finite A \<and> A \<subseteq> standard_basis_n \<and> a \<in> A \<rightarrow> E}"
+      sorry
+  qed
+  ultimately show ?thesis
+    unfolding induced_vs_vs.basis_def
+    by auto
+qed
+
 
 lemma induced_dim_n: "induced_vs_vs.dim = n"
 proof -
