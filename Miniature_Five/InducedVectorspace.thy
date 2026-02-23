@@ -376,9 +376,74 @@ proof (unfold inj_on_def, safe)
     by auto
 qed
 
+lemma lincomb_coords:
+  fixes i :: nat and a :: "'a vec \<Rightarrow> 'a" and X :: "'a vec set"
+  assumes "i < n" and "a \<in> X \<rightarrow> E" and "finite X"
+  shows "(\<Oplus>\<^bsub>VS\<^esub> x \<in> X. a x \<odot>\<^bsub>VS\<^esub> x) $ i = (\<Oplus>\<^bsub>F\<^esub> x \<in> X. (a x \<odot>\<^bsub>VS\<^esub> x) $ i)"
+  using assms
+proof (induction "card X" arbitrary: i a X)
+  case 0
+  hence "X = {}"
+    by simp
+  hence "(\<Oplus>\<^bsub>VS\<^esub> x \<in> X. a x \<odot>\<^bsub>VS\<^esub> x) $ i = \<zero>\<^bsub>VS\<^esub> $ i"
+    by simp
+  moreover have " \<zero>\<^bsub>VS\<^esub> $ i = \<zero>\<^bsub>F\<^esub>"
+    using 0 
+    unfolding zero_vec_def
+    by simp
+  moreover have "(\<Oplus>\<^bsub>F\<^esub> x \<in> X. (a x \<odot>\<^bsub>VS\<^esub> x) $ i) = \<zero>\<^bsub>F\<^esub>"
+    using \<open>X = {}\<close>
+    by simp
+  ultimately show ?case
+    using 0
+    by metis
+next
+  case (Suc x)
+  then show ?case sorry
+qed
+
+lemma finsum_standard_basis_entries:
+  fixes i :: nat and a :: "'a vec \<Rightarrow> 'a" and X :: "'a vec set"
+  assumes 
+    "i < n" and "a \<in> standard_basis_n \<rightarrow> E"
+  shows "(\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i) = a (standard_basis_vec i)"
+proof -
+  have 
+    "(\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i) = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_vec ` {0..<n}. (a b \<odot>\<^bsub>VS\<^esub> b) $ i)"
+    sorry
+  moreover have 
+    "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i)"
+    sorry
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i)"
+    sorry
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>))"
+    by simp
+  moreover have "... = a (standard_basis_vec i)"
+    sorry
+  ultimately show ?thesis
+    by simp
+qed
+
+(*
+  have 
+    "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = 
+      (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i)" sorry
+  also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. a b \<otimes>\<^bsub>F\<^esub> b $ i)" sorry
+  also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. if b = standard_basis_vec i then a b else \<zero>\<^bsub>F\<^esub>)" sorry
+  also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> (standard_basis_n - {standard_basis_vec i}) \<union> {standard_basis_vec i}.
+    if b = standard_basis_vec i then a b else \<zero>\<^bsub>F\<^esub>)" sorry
+  also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> {standard_basis_vec i}. a b)" sorry
+  also have "\<dots> = a (standard_basis_vec i)" sorry
+  finally show "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)" 
+qed
+*)
+
 lemma induced_basis_n: "induced_vs_vs.basis standard_basis_n"
 proof -
 
+  have fin: "finite standard_basis_n"
+    unfolding standard_basis_n_def
+    by simp
   have "standard_basis_n \<subseteq> V"
     unfolding standard_basis_n_def standard_basis_vec_def vec_set_def
     by fastforce
@@ -395,31 +460,24 @@ proof -
       using induced_vs_vs.finite_lin_dep \<open>standard_basis_n \<subseteq> V\<close>
       by simp
     then obtain a v where
-      "a \<in> standard_basis_n \<rightarrow> E"
+      map: "a \<in> standard_basis_n \<rightarrow> E"
       "induced_vs_vs.lincomb a standard_basis_n = \<zero>\<^bsub>VS\<^esub>"
       "v \<in> standard_basis_n"
       "a v \<noteq> \<zero>\<^bsub>F\<^esub>"
       by blast
 
-    then have "induced_vs_vs.lincomb a standard_basis_n = (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b)"
+    then have 
+      "induced_vs_vs.lincomb a standard_basis_n = (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b)"
       unfolding "induced_vs_vs.lincomb_def"
       by auto
-    then have "\<And>i. i < n \<Longrightarrow> (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)"
-    proof -
-      fix i
-      assume "i < n"
+    moreover have 
+      "\<forall>i \<in> {0..<n}. (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)"
+      using lincomb_coords[of _ a standard_basis_n] finsum_standard_basis_entries[of _ a] map fin
+      by simp
 
-      have "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i)" sorry
-      also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. a b \<otimes>\<^bsub>F\<^esub> b $ i)" sorry
-      also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. if b = standard_basis_vec i then a b else \<zero>\<^bsub>F\<^esub>)" sorry
-      also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> (standard_basis_n - {standard_basis_vec i}) \<union> {standard_basis_vec i}.
-        if b = standard_basis_vec i then a b else \<zero>\<^bsub>F\<^esub>)" sorry
-      also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> {standard_basis_vec i}. a b)" sorry
-      also have "\<dots> = a (standard_basis_vec i)" sorry
-      finally show "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)" .
-    qed
+    (* TODO *)
     
-    then show False sorry
+    show False sorry
   qed
   moreover have "induced_vs_vs.span standard_basis_n = V"
     unfolding induced_vs_vs.span_def
