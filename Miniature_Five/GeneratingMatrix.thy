@@ -83,11 +83,6 @@ next
     sorry
 qed
 
-subsection \<open>Code as the Image of the Generating Matrix\<close>
-
-lemma code_img_gen: "code.CS = RS\<lparr>carrier:=lin_map.imT\<rparr>"
-  sorry
-
 subsection \<open>Orthogonal Carrier as the Kernel of the Generating Matrix\<close>
 
 lemma orthogonal_kernel:
@@ -129,8 +124,64 @@ next
     dim: "n = dim_vec v" and 
     vec: "set\<^sub>v v \<subseteq> code.E" and 
     in_ker: "lin_map.mult_mat_vec G v = row_induced.zero_vec"
-  show "row_induced.orthogonal v w"
+  have "vectorspace.basis F code.CS (set (rows G))"
+    using gen
+    unfolding code.generating_matrix_def 
+    by blast
+  hence "w \<in> module.span F code.CS (set (rows G))"
+    using \<open>w \<in> C\<close> vectorspace.basis_def[of F code.CS "set (rows G)", OF local.code.code_space] 
+    by simp
+  moreover have "finite (set (rows G))"
+    by simp
+  moreover have "set (rows G) \<subseteq> carrier code.CS"
+    using gen
+    unfolding code.generating_matrix_def
+    using vectorspace.basis_def[of F "lin_map.V.vs C" "set (rows G)"] code.sub_vs
+    by satx
+  ultimately have 
+    "w \<in> {module.lincomb code.CS a (set (rows G)) | a. a \<in> (set (rows G) \<rightarrow> carrier F)}"
+    using code.sub_vs
+    unfolding vectorspace_def
+    using module.finite_span[of F code.CS "set (rows G)"] 
+    by algebra
+  hence 
+    "\<exists>\<alpha>. \<alpha> \<in> set (rows G) \<rightarrow> carrier F \<and> w = module.lincomb code.CS \<alpha> (set (rows G))"
+    using code.sub_vs
+    unfolding vectorspace_def
+    using module.span_def[of F code.CS "set (rows G)"]
+    by auto
+  then obtain \<alpha> :: "'a vec \<Rightarrow> 'a" where 
+    "\<alpha> \<in> set (rows G) \<rightarrow> row_induced.E" and 
+    lin_comb: "w = module.lincomb code.CS \<alpha> (set (rows G))"
+    by auto
+  have "\<forall>b \<in> set (rows G). \<exists>j \<in> {0..<m}. b = row G j"
+    unfolding rows_def m_def
+    by auto
+  moreover have 
+    "\<forall>j \<in> {0..<m}. vec (dim_row G) (\<lambda>i. lin_map.scalar_prod (row G i) v) $ j = 
+      lin_map.scalar_prod (row G j) v"
+    unfolding m_def
+    by simp
+  ultimately have "\<forall>b \<in> set (rows G). \<exists>j \<in> {0..<m}. 
+    vec (dim_row G) (\<lambda>i. lin_map.scalar_prod (row G i) v) $ j = lin_map.scalar_prod b v"
+    by metis
+  moreover have 
+    "\<forall>j \<in> {0..<m}. vec (dim_row G) (\<lambda>i. lin_map.scalar_prod (row G i) v) $ j = 
+      row_induced.zero_vec $ j"
+    using lin_map.mult_mat_vec_def[of G v] in_ker
+    by metis
+  moreover have "\<forall>j \<in> {0..<m}. row_induced.zero_vec $ j = \<zero>\<^bsub>F\<^esub>"
+    unfolding row_induced.zero_vec_def
+    by simp
+  ultimately have "\<forall>b \<in> set (rows G). lin_map.scalar_prod b v = \<zero>\<^bsub>F\<^esub>"
+    by simp
+  hence "lin_map.scalar_prod w v = \<zero>\<^bsub>F\<^esub>"
+    using lin_comb
     sorry
+  thus "row_induced.orthogonal v w"
+    unfolding row_induced.orthogonal_def
+    using lin_map.scalar_prod_sym
+    by metis
 qed
 
 lemma orthogonal_dim_ker:
@@ -141,9 +192,20 @@ lemma orthogonal_dim_ker:
 
 subsection \<open>Dimensions of the Orthogonal Carrier and the Code\<close>
 
-lemma orthogonal_dim_img:
-  "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) = 
-    n - vectorspace.dim F code.CS"
+lemma gen_dim: "n > m"
+proof -
+  have "m = vectorspace.dim F code.CS"
+    unfolding m_def
+    using gen
+    unfolding code.generating_matrix_def
+    by satx
+  thus ?thesis
+    using code.code_dim
+    by metis
+qed
+
+lemma orthogonal_dim_lower_bound:
+  "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) \<ge> n - m"
 proof -
   have "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) =
     lin_map.V.dim - vectorspace.dim F (lin_map.W.vs lin_map.imT)"
@@ -152,11 +214,11 @@ proof -
   moreover have "lin_map.V.dim = n"
     using code.induced_dim_n
     by satx
-  moreover have "RS\<lparr>carrier:=lin_map.imT\<rparr> = (lin_map.W.vs lin_map.imT)"
-    by simp
+  moreover have "vectorspace.dim F (lin_map.W.vs lin_map.imT) \<le> m"
+    using lin_map.imT_is_subspace m_def row_induced.induced_dim_n subspace.dim_le 
+    by fastforce
   ultimately show ?thesis
-    using code_img_gen
-    by simp
+    by presburger
 qed
 
 end
@@ -195,13 +257,13 @@ next
       unfolding linear_code_generator_def linear_code_generator_axioms_def
       using linear_code_axioms
       by satx
-    have "orth_vec_space.dim = n - vectorspace.dim F CS"  
-      using g_hom.orthogonal_dim_img
+    have "orth_vec_space.dim \<ge> n - g_hom.m"  
+      using g_hom.orthogonal_dim_lower_bound
       by satx
-    also have "... > 0"
-      using code_dim
+    moreover have "n - g_hom.m > 0"
+      using g_hom.gen_dim
       by presburger
-    finally have "orth_vec_space.dim > 0"
+    ultimately have "orth_vec_space.dim > 0"
       by simp
     moreover have "vectorspace.dim F (VS\<lparr>carrier:={zero_vec}\<rparr>) = 0"
       by (rule local.ind.dim_zero)
@@ -222,18 +284,21 @@ next
     by metis
   hence "\<not> (\<forall>v \<in> C. v = \<zero>\<^bsub>VS\<^esub>)"
     by presburger
-  then obtain v :: "'a vec" where "v \<noteq> \<zero>\<^bsub>VS\<^esub>" and "v \<in> C"
+  then obtain v :: "'a vec" where "v \<noteq> \<zero>\<^bsub>VS\<^esub>" and "v \<in> C" and "dim_vec v = n"
+    using words_subs
     by auto
-  moreover have "\<zero>\<^bsub>VS\<^esub> = vec n (\<lambda>i. \<zero>\<^bsub>F\<^esub>)" 
-    by (simp add: kn.zero_vec_def)
-  ultimately have "\<exists>i \<in> {0..<n}. v $ i \<noteq> \<zero>\<^bsub>F\<^esub>"
-    sorry
+  hence "\<exists>i \<in> {0..<n}. v $ i \<noteq> \<zero>\<^bsub>F\<^esub>"
+    using eq_vecI[of v "\<zero>\<^bsub>VS\<^esub>"] kn.zero_vec_def
+    by auto
   then obtain i :: nat where "v $ i \<noteq> \<zero>\<^bsub>F\<^esub>" and "i \<in> {0..<n}"
     by metis
+  then have "standard_basis_vec i \<in> standard_basis_n"
+    unfolding ind.kn.standard_basis_n_def
+    by simp
   then have "standard_basis_vec i \<in> V"
     unfolding standard_basis_vec_def
-    using induced_basis_n vectorspace.basis_def ind.kn.standard_basis_n_def
-    sorry
+    using induced_basis_n vectorspace.basis_def[of F VS standard_basis_n, OF ind.kn.vectorspace_VS] 
+    by auto
   hence "standard_basis_vec i \<in> orthogonal_carrier"
     using eq_carr
     by metis
