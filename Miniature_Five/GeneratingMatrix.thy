@@ -13,6 +13,13 @@ definition (in linear_code) generating_matrix:: "'a mat \<Rightarrow> bool"
       \<and> dim_col G = n
       \<and> vectorspace.basis F CS (set (rows G))"
 
+lemma (in linear_code) fin_dim: "vectorspace.fin_dim F VS"
+  sorry
+
+lemma (in linear_code) generating_matrix_exists:
+  "\<exists>G :: 'a mat. generating_matrix G"
+  sorry
+
 text \<open>The reference now claims that every linear code has a generating matrix
 in standard form (where the left side of the matrix is $I_k$). This does not make sense
 (consider the linear code of all vectors $0v \<in> A^(n+1), v \<in> A^n) and is refuted
@@ -24,17 +31,133 @@ definition (in linear_code) parity_check_matrix:: "'a mat \<Rightarrow> bool"
   in
     orthogonal_generating_matrix G"
 
+locale linear_code_generator = code: linear_code +
+  fixes G :: "'a mat"
+  assumes gen: "code.generating_matrix G"
+begin
+
+definition m :: nat where "m \<equiv> dim_row G"
+
+abbreviation RS where "RS \<equiv> induced_vs.VS F m"
+
+fun generator_hom :: "'a vec \<Rightarrow> 'a vec" where
+  "generator_hom v = field.mult_mat_vec F G v"
+
+interpretation row_induced: induced_vs F m
+  by (rule local.code.induced_vs_axioms)
+
+interpretation lin_map: 
+  linear_map F code.VS "induced_vs.VS F m" generator_hom
+proof (unfold linear_map_def, safe)
+  show "vectorspace F code.VS"
+    by (rule local.code.vectorspace_VS)
+next
+  show "vectorspace F RS"
+    by (rule local.row_induced.vectorspace_VS)
+next
+  show "mod_hom F code.VS RS generator_hom"
+    sorry
+qed
+
+lemma orthogonal_kernel:
+  "code.orthogonal_carrier = lin_map.kerT"
+proof (unfold lin_map.ker_def, simp, safe)
+  fix v :: "'a vec"
+  assume 
+    dim: "n = dim_vec v" and 
+    vec: "set\<^sub>v v \<subseteq> code.E" and 
+    orth: "Ball C (code.orthogonal v)"
+  have "set (rows G) \<subseteq> carrier (lin_map.V.vs C)"
+    using gen 
+          vectorspace.basis_def[of F "lin_map.V.vs C" "set (rows G)", OF code.code_space]
+    unfolding code.generating_matrix_def
+    by satx
+  moreover have "... = C"
+    by (rule local.lin_map.V.carrier_vs_is_self)
+  ultimately have "\<forall>i \<in> {0..<dim_row G}. row G i \<in> C"
+    using rows_def[of G]
+    by auto
+  hence "\<forall>i \<in> {0..<dim_row G}. field.scalar_prod F (row G i) v = \<zero>\<^bsub>F\<^esub>"
+    using orth field.scalar_prod_sym[of F, OF lin_map.field_axioms]
+    unfolding code.orthogonal_def
+    by metis
+  hence "lin_map.mult_mat_vec G v = vec m (\<lambda>i. \<zero>\<^bsub>F\<^esub>)"
+    unfolding lin_map.mult_mat_vec_def m_def
+    by auto
+  moreover have "induced_vs F"
+    using m_def code.induced_subspace_axioms
+    unfolding induced_subspace_def
+    by satx
+  ultimately show "lin_map.mult_mat_vec G v = induced_vs.zero_vec F m"
+    using induced_vs.zero_vec_def[of F m] m_def code.induced_subspace_axioms
+    by metis
+next
+  fix v :: "'a vec" and w :: "'a vec"
+  assume 
+    in_C: "w \<in> C" and
+    dim: "n = dim_vec v" and 
+    vec: "set\<^sub>v v \<subseteq> code.E" and 
+    in_ker: "lin_map.mult_mat_vec G v = row_induced.zero_vec"
+  show "row_induced.orthogonal v w"
+    sorry
+qed
+
+lemma orthogonal_dim_ker:
+  "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) = 
+    vectorspace.dim F (code.VS\<lparr>carrier:=lin_map.kerT\<rparr>)"
+  using orthogonal_kernel
+  by simp
+
+lemma orthogonal_dim_img:
+  "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) = 
+    n - vectorspace.dim F code.CS"
+proof -
+  have "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) =
+    lin_map.V.dim - vectorspace.dim F (lin_map.W.vs lin_map.imT)"
+    using lin_map.rank_nullity_main[OF code.fin_dim] orthogonal_kernel
+    by presburger
+  moreover have "lin_map.V.dim = n"
+    sorry
+  moreover have "RS\<lparr>carrier:=lin_map.imT\<rparr> = (lin_map.W.vs lin_map.imT)"
+    by simp
+  moreover have "code.CS = RS\<lparr>carrier:=lin_map.imT\<rparr>"
+    sorry
+  ultimately show ?thesis
+    by simp
+qed
+
+end
+
+lemma (in linear_code) code_dim:
+  "vectorspace.dim F CS < n"
+  sorry
+
+lemma (in linear_code) orth_space:
+  "induced_subspace F orthogonal_carrier n"
+  sorry
+
+lemma (in induced_subspace) dim_zero:
+  assumes "W = {zero_vec}"
+  shows
+    "vectorspace.dim F subspace_obj = 0"
+  sorry
+
+lemma (in induced_vs) trivial_space:
+  "induced_subspace F {zero_vec} n"
+  sorry
 
 lemma (in linear_code) orthogonal_linear_code:
     "linear_code F orthogonal_carrier n"
-proof -
+proof (unfold linear_code_def linear_code_axioms_def, safe)
+  show "induced_subspace F orthogonal_carrier n"     
+    using orth_space
+    by satx
+next
   have "orthogonal_carrier \<subseteq> words" by auto
   have "finite orthogonal_carrier" using finite by fastforce
-
-  have "induced_subspace F orthogonal_carrier n" sorry
-  moreover have "code (carrier F) n orthogonal_carrier"
-  proof (standard, simp add: finite_alphabet, auto)
-    assume "\<not> Suc 0 < card orthogonal_carrier"
+  show "code E n orthogonal_carrier"
+  proof (standard, simp add: finite_alphabet, safe)
+    assume "\<not> 1 < card orthogonal_carrier" and "finite orthogonal_carrier"
     then have card: "card orthogonal_carrier \<le> 1"
       by linarith
     moreover have "zero_vec \<in> orthogonal_carrier"
@@ -43,31 +166,37 @@ proof -
     then have "card {zero_vec} \<le> card orthogonal_carrier"
       using \<open>finite orthogonal_carrier\<close> card_mono
       by blast
-    ultimately have "{zero_vec} = orthogonal_carrier"
+    ultimately have trivial: "{zero_vec} = orthogonal_carrier"
       using \<open>{zero_vec} \<subseteq> orthogonal_carrier\<close> \<open>finite orthogonal_carrier\<close>
       by (simp add: card_subset_eq)
-
-    moreover have "C \<subseteq> induced_subspace.orthogonal_carrier F orthogonal_carrier n" proof
-      fix x
-      assume "x \<in> C"
-
-      moreover have "\<forall>w \<in> orthogonal_carrier. orthogonal x w" proof
-        fix w
-        assume "w \<in> orthogonal_carrier"
-        then have "\<forall>u\<in>C. local.orthogonal w u" by simp
-        then show "orthogonal x w" using \<open>x \<in> C\<close> orthogonal_symm by metis
-      qed
-
-      ultimately show "x \<in> induced_subspace.orthogonal_carrier F orthogonal_carrier n"
-        using words_subs by blast
-    qed (* This is the wrong way, we need the other subset direction...*)
-    moreover have "induced_subspace.orthogonal_carrier F {zero_vec} n = V"
-      using orthogonal_symm zero_orthogonal by auto
-    ultimately have "C = V" sorry
-
-
-
-  ultimately show ?thesis using linear_code_def by metis
+    interpret orth_ind_space: induced_subspace F orthogonal_carrier n
+      using orth_space
+      by satx
+    interpret orth_vec_space: vectorspace F orth_ind_space.subspace_obj
+      by (rule local.orth_ind_space.sub_vs)
+    from generating_matrix_exists obtain G :: "'a mat" where "generating_matrix G"
+      by meson
+    then interpret g_hom: linear_code_generator F C n G
+      sorry
+    have "orth_vec_space.dim = n - vectorspace.dim F CS"  
+      using g_hom.orthogonal_dim_img
+      by satx
+    also have "... > 0"
+      using code_dim
+      by presburger
+    finally have "orth_vec_space.dim > 0"
+      by simp
+    moreover have "vectorspace.dim F (VS\<lparr>carrier:={zero_vec}\<rparr>) = 0"
+      using induced_subspace.dim_zero[of F "{zero_vec}" n F]
+      sorry
+    ultimately show "False"
+      using trivial
+      by simp
+  qed
+next
+  assume "orthogonal_carrier = {v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E}"
+  show "False"
+    sorry
 qed
 
 lemma (in linear_code) parity_check:
@@ -85,27 +214,36 @@ proof -
     using assms
     unfolding field.mult_mat_vec_def[OF field_F]
     by simp
-  moreover have "linear_code F orthogonal_carrier n" sorry
-  then have "vectorspace.basis F (W\<lparr>carrier := orthogonal_carrier\<rparr>) (set (rows P))"
+  interpret orth_lin: linear_code F orthogonal_carrier n sorry
+  have "vectorspace.basis F (W\<lparr>carrier := orthogonal_carrier\<rparr>) (set (rows P))"
     using assms
     unfolding parity_check_matrix_def
     unfolding Let_def
-    using linear_code.generating_matrix_def
-    using orthogonal_linear_code
-    by metis
+    using orth_lin.generating_matrix_def
+    using orth_lin.orthogonal_linear_code
+    by algebra
   then have "set (rows P) \<subseteq> orthogonal_carrier"
-    using orthogonal_linear_code linear_code.code_space
-    using vectorspace.basis_def by fastforce
-  then have "rows P ! i \<in> orthogonal_carrier"
-    using assms length_rows[of P] nth_mem subset_eq by metis
+    using orth_lin.linear_code_axioms linear_code.code_space
+    using vectorspace.basis_def 
+    sorry
+  moreover have "rows P ! i \<in> set (rows P)"
+    using assms rows_def[of P]
+    by simp
+  ultimately have "rows P ! i \<in> orthogonal_carrier"
+    by blast
   then have "row P i \<in> orthogonal_carrier" using assms by simp
   then have "induced_vs.orthogonal F (row P i) v"
     using assms
-    using orthogonal_carrier_def by auto
+    by auto
   then have "field.scalar_prod F (row P i) v = \<zero>\<^bsub>F\<^esub>"
     unfolding orthogonal_def
     by satx
-  ultimately show "?prod $ i = \<zero>\<^bsub>F\<^esub>" by presburger
+  moreover have "field.scalar_prod F (row P i) v = ?prod $ i"
+    using field.mult_mat_vec_def[of F P v] linear_code_axioms assms
+    unfolding linear_code_def induced_subspace_def induced_vs_def
+    by simp
+  ultimately show "?prod $ i = \<zero>\<^bsub>F\<^esub>"
+    by simp
 qed
 
 end

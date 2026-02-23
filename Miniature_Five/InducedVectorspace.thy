@@ -319,7 +319,8 @@ next
 qed (simp add: addition_comm zero_vec_in_v)
 
 
-lemma vectorspace_VS: "vectorspace F VS" proof (unfold vectorspace_def module_def module_axioms_def, simp, safe, goal_cases)
+lemma vectorspace_VS: "vectorspace F VS" 
+proof (unfold vectorspace_def module_def module_axioms_def, simp, safe, goal_cases)
   case 1
   show "field F" using induced_vs_def[of F] induced_vs_axioms by satx
   then show "cring F" using field_def domain_def by metis
@@ -345,6 +346,12 @@ next
   case (8 x)
   then show ?case using scale_1_id by simp
 qed
+
+interpretation induced_vs_vs: vectorspace F VS
+  by (rule vectorspace_VS)
+
+lemma induced_dim_n: "induced_vs_vs.dim = n"
+  sorry
 
 lemma additive_inverse[simp]:
   assumes
