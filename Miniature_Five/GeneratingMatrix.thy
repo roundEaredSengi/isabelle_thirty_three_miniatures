@@ -209,23 +209,44 @@ next
       using trivial
       by simp
   qed
+next
   assume eq_carr: "orthogonal_carrier = {v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E}"
-  have "orthogonal_carrier \<noteq> V"
-    sorry
-  then interpret orth_code: linear_code F orthogonal_carrier n
-    using code orthogonal_subspace
-    unfolding linear_code_def linear_code_axioms_def
-    by satx
-  have "vectorspace.dim F (VS\<lparr>carrier:=orthogonal_carrier\<rparr>) < n"
-    using orth_code.code_dim
-    by satx
-  moreover have "vectorspace.dim F VS = n"
-    by (rule local.ind.kn.induced_dim_n)
-  moreover have "vectorspace.dim F (VS\<lparr>carrier:=orthogonal_carrier\<rparr>) = vectorspace.dim F VS"
-    using eq_carr
+  have "card C > 1"
+    using code.code_axioms
+    unfolding code_def
     by simp
+  hence "\<exists>a\<in>C. \<exists>b\<in>C. a \<noteq> b"
+    using distinct_elems_card[of C]
+    by blast
+  hence "\<not> (\<exists>w. \<forall>v \<in> C. v = w)"
+    by metis
+  hence "\<not> (\<forall>v \<in> C. v = \<zero>\<^bsub>VS\<^esub>)"
+    by presburger
+  then obtain v :: "'a vec" where "v \<noteq> \<zero>\<^bsub>VS\<^esub>" and "v \<in> C"
+    by auto
+  moreover have "\<zero>\<^bsub>VS\<^esub> = vec n (\<lambda>i. \<zero>\<^bsub>F\<^esub>)" 
+    by (simp add: kn.zero_vec_def)
+  ultimately have "\<exists>i \<in> {0..<n}. v $ i \<noteq> \<zero>\<^bsub>F\<^esub>"
+    sorry
+  then obtain i :: nat where "v $ i \<noteq> \<zero>\<^bsub>F\<^esub>" and "i \<in> {0..<n}"
+    by metis
+  then have "standard_basis_vec i \<in> V"
+    unfolding standard_basis_vec_def
+    using induced_basis_n vectorspace.basis_def ind.kn.standard_basis_n_def
+    sorry
+  hence "standard_basis_vec i \<in> orthogonal_carrier"
+    using eq_carr
+    by metis
+  hence "field.scalar_prod F (standard_basis_vec i) v  = \<zero>\<^bsub>F\<^esub>"
+    using \<open>v \<in> C\<close>
+    unfolding orthogonal_def
+    by simp
+  moreover have "field.scalar_prod F (standard_basis_vec i) v = v $ i"
+    unfolding standard_basis_vec_def
+    sorry
   ultimately show "False"
-    by linarith
+    using \<open>v $ i \<noteq> \<zero>\<^bsub>F\<^esub>\<close> 
+    by argo
 qed
 
 lemma (in linear_code) parity_check:
