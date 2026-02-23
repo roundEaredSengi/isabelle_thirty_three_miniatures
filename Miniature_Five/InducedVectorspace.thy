@@ -376,6 +376,21 @@ proof (unfold inj_on_def, safe)
     by auto
 qed
 
+lemma standard_vec_in_v:
+  assumes
+    "i \<in> {0..<n}"
+  shows
+    "standard_basis_vec i \<in> V"
+proof (unfold standard_basis_vec_def, simp, safe)
+  fix x
+  assume "x \<in> set\<^sub>v (vec n (\<lambda>k. if k = i then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>))"
+  then obtain j where "j \<in> {0..<n}" "x = (vec n (\<lambda>k. if k = i then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>)) $ j"
+    unfolding vec_set_def
+    by fastforce
+  moreover have "\<one>\<^bsub>F\<^esub> \<in> E" "\<zero>\<^bsub>F\<^esub> \<in> E" by simp_all
+  ultimately show "x \<in> E" using vec_set_def by simp
+qed
+
 lemma lincomb_coords:
   fixes i :: nat and a :: "'a vec \<Rightarrow> 'a" and X :: "'a vec set"
   assumes "i < n" and "a \<in> X \<rightarrow> E" and "finite X"
@@ -408,37 +423,100 @@ lemma finsum_standard_basis_entries:
     "i < n" and "a \<in> standard_basis_n \<rightarrow> E"
   shows "(\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i) = a (standard_basis_vec i)"
 proof -
+  have "{0..<n} = {..<n}" by auto
+
+  have sbv_inj: "inj_on standard_basis_vec {..<n}"
+    using inj_standard_basis \<open>{0..<n} = {..<n}\<close> by metis
+
+  have func: "(\<lambda>b. (a b \<odot>\<^bsub>VS\<^esub> b) $ i) \<in> standard_basis_vec ` {..<n} \<rightarrow> E" proof
+    fix x
+    assume "x \<in> standard_basis_vec ` {..<n}"
+    then have "x \<in> standard_basis_n"
+      using standard_basis_n_def
+      by fastforce
+    then have "a x \<in> E"
+      using assms
+      by blast
+    moreover have "\<one>\<^bsub>F\<^esub> \<in> E" "\<zero>\<^bsub>F\<^esub> \<in> E" by simp_all
+    then have "x \<in> V"
+      using standard_vec_in_v standard_basis_n_def \<open>x \<in> standard_basis_n\<close>
+      by force
+    ultimately have "a x \<odot>\<^bsub>VS\<^esub> x \<in> V"
+      using induced_vs_vs.smult_closed
+      by simp
+    then show "(a x \<odot>\<^bsub>VS\<^esub> x) $ i \<in> E" using assms by auto
+  qed
+  interpret group_F: abelian_monoid F using field_F induced_vs_vs.module.R.abelian_monoid_axioms by satx
+
+  note reindex = abelian_monoid.finsum_reindex[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+  note cong = abelian_monoid.finsum_cong'[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+  note insert = abelian_monoid.finsum_insert[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+  note sum_zero = abelian_monoid.finsum_zero[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+  note r_zero = abelian_monoid.r_zero[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+
+  have mul_equiv: "\<And>j. j \<in> {..<n} \<Longrightarrow> (a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i =  (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i"
+  proof -
+    fix j
+    assume j: "j \<in> {..<n}"
+    have "(a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i = (a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> (standard_basis_vec j $ i))"
+      unfolding scaling_def
+      using assms
+      by simp
+    also have "\<dots> = (a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> (if i = j then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>))"
+      unfolding standard_basis_vec_def
+      using assms
+      by simp
+    also have "\<dots> = (if i = j then a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> \<one>\<^bsub>F\<^esub> else a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>)"
+      by presburger
+    also have "\<dots> = (if i = j then a (standard_basis_vec j) else a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>)"
+      by (metis PiE assms(2) atLeast0LessThan imageI induced_vs_vs.r_one j
+          standard_basis_n_def)
+    also have "\<dots> = (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)"
+      by (metis j standard_basis_n_def assms(2) PiE imageI induced_vs_vs.integral_iff lessThan_atLeast0 induced_vs_vs.R.zero_closed)
+    finally show "(a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i =  (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i"
+      by presburger
+  qed
+  have idfk: "(\<lambda>ia. if i = ia then a (standard_basis_vec ia) else \<zero>\<^bsub>F\<^esub>) \<in> {..<n} \<rightarrow> E"
+  proof
+    fix x
+    assume x: "x \<in> {..<n}"
+    moreover have "\<zero>\<^bsub>F\<^esub> \<in> E" by simp
+    moreover have "a (standard_basis_vec x) \<in> E"
+      using assms standard_basis_n_def x by force 
+    then show "(if i = x then a (standard_basis_vec x) else \<zero>\<^bsub>F\<^esub>) \<in> E" by simp
+  qed
+  have idfk2: "(\<lambda>j. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) \<in> {..<n} - {i} \<rightarrow> E"
+    by auto
+  have idfk22: "(if i = i then a (standard_basis_vec i) else \<zero>\<^bsub>F\<^esub>) \<in> E"
+    using assms standard_basis_n_def by auto
+  have idfk23: "insert i ({..<n} - {i}) = {..<n}" using assms by auto
+
   have 
     "(\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i) = 
-      (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_vec ` {0..<n}. (a b \<odot>\<^bsub>VS\<^esub> b) $ i)"
-    by (metis standard_basis_n_def)
+      (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_vec ` {..<n}. (a b \<odot>\<^bsub>VS\<^esub> b) $ i)"
+    using standard_basis_n_def \<open>{0..<n} = {..<n}\<close>
+    by presburger
   moreover have 
-    "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i)"
-    sorry (* TODO finsum on image set? Krise *)
+    "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {..<n}. (a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i)"
+    using reindex[OF func sbv_inj] .
   moreover have 
-    "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i)"
-    sorry (* TODO finsum on same map *)
-  moreover have "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>))"
+    "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {..<n}. (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i)"
+    using mul_equiv cong[of "{..<n}" "{..<n}", OF _ idfk mul_equiv]
+    by presburger
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {..<n}. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>))"
     by simp
-  moreover have "... = a (standard_basis_vec i)"
-    sorry (* TODO adding zeros does not change finsum? Krise 2.0 *)
+  moreover have "\<dots> = (\<lambda>j. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub> j \<in> {..<n} - {i}. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>))"
+    using insert[of "{..<n} - {i}" i "(\<lambda>j. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>))", OF _ _ idfk2 idfk22] idfk23
+    by auto
+  moreover have "... = (\<lambda>j. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub> j \<in> {..<n} - {i}. \<zero>\<^bsub>F\<^esub>)"
+    using cong[of "{..<n} - {i}" "{..<n} - {i}"]
+    by fastforce
+  moreover have "... = (\<lambda>j. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i"
+    using sum_zero r_zero assms
+    using idfk22 by force
   ultimately show ?thesis
-    by simp
+    by presburger
 qed
-
-(*
-  have 
-    "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = 
-      (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i)" sorry
-  also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. a b \<otimes>\<^bsub>F\<^esub> b $ i)" sorry
-  also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. if b = standard_basis_vec i then a b else \<zero>\<^bsub>F\<^esub>)" sorry
-  also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> (standard_basis_n - {standard_basis_vec i}) \<union> {standard_basis_vec i}.
-    if b = standard_basis_vec i then a b else \<zero>\<^bsub>F\<^esub>)" sorry
-  also have "\<dots> = (\<Oplus>\<^bsub>F\<^esub> b \<in> {standard_basis_vec i}. a b)" sorry
-  also have "\<dots> = a (standard_basis_vec i)" sorry
-  finally show "(\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)" 
-qed
-*)
 
 lemma induced_basis_n: "induced_vs_vs.basis standard_basis_n"
 proof -
@@ -472,14 +550,20 @@ proof -
       "induced_vs_vs.lincomb a standard_basis_n = (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b)"
       unfolding "induced_vs_vs.lincomb_def"
       by auto
+    then have "\<zero>\<^bsub>VS\<^esub> = (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b)"
+      using map
+      by presburger
+    then have "\<forall>i \<in> {0..<n}. (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = \<zero>\<^bsub>F\<^esub>"
+      using zero_vec_def by simp
     moreover have 
       "\<forall>i \<in> {0..<n}. (\<Oplus>\<^bsub>VS\<^esub> b \<in> standard_basis_n. a b \<odot>\<^bsub>VS\<^esub> b) $ i = a (standard_basis_vec i)"
       using lincomb_coords[of _ a standard_basis_n] finsum_standard_basis_entries[of _ a] map fin
       by simp
-
-    (* TODO *)
-    
-    show False sorry
+    ultimately have "\<forall>i \<in> {0..<n}.  a (standard_basis_vec i) = \<zero>\<^bsub>F\<^esub>"
+      by simp
+    then have "a v = \<zero>\<^bsub>F\<^esub>"
+      using map(3,4) standard_basis_n_def by auto
+    then show False using map by presburger
   qed
   moreover have "induced_vs_vs.span standard_basis_n = V"
     unfolding induced_vs_vs.span_def
