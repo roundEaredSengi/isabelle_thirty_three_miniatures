@@ -2,6 +2,8 @@ theory InducedVectorspace
   imports "../Thirty_Three_Miniatures_Root" Util CarriersetMatrix
 begin
 
+section \<open>Induced Vector Space \<^latex>\<open>\mathbb{F}^n\<close> of a Field F\<close>
+
 locale induced_vs =
   fixes
     F and
@@ -12,9 +14,6 @@ begin
 abbreviation E where "E \<equiv> carrier F"
 abbreviation V where "V \<equiv> { v . dim_vec v = n \<and> set\<^sub>v v \<subseteq> E}"
 
-lemma monoid_F: "monoid F" using field_F field_def domain_def cring_def comm_monoid_def by auto
-lemma ring_F: "ring F" using field_F field_def domain_def cring_def by auto
-
 definition addition :: "'a vec \<Rightarrow> 'a vec \<Rightarrow> 'a vec" where
   "addition u v = vec n (\<lambda>i. (u$i) \<oplus>\<^bsub>F\<^esub> (v$i))"
 
@@ -22,6 +21,12 @@ definition scaling ::  "'a \<Rightarrow> 'a vec \<Rightarrow> 'a vec" where
   "scaling s w = vec n (\<lambda>i. s \<otimes>\<^bsub>F\<^esub> (w$i))"
 
 definition zero_vec where "zero_vec = vec n (\<lambda>i. \<zero>\<^bsub>F\<^esub>)"
+
+subsection \<open>Induced Vector Space as a Vector Space\<close>
+
+lemma monoid_F: "monoid F" using field_F field_def domain_def cring_def comm_monoid_def by auto
+lemma ring_F: "ring F" using field_F field_def domain_def cring_def by auto
+
 lemma zero_vec_in_v: "zero_vec \<in> V"
 proof (safe)
   fix x
@@ -134,7 +139,6 @@ proof -
   then show ?thesis
     using assms scaling_def addition_def by auto
 qed
-
 
 definition induced_inv where "induced_inv v = vec n (\<lambda>i. \<ominus>\<^bsub>F\<^esub> (v$i))"
 
@@ -318,7 +322,6 @@ next
   qed
 qed (simp add: addition_comm zero_vec_in_v)
 
-
 lemma vectorspace_VS: "vectorspace F VS" 
 proof (unfold vectorspace_def module_def module_axioms_def, simp, safe, goal_cases)
   case 1
@@ -350,9 +353,52 @@ qed
 interpretation induced_vs_vs: vectorspace F VS
   by (rule vectorspace_VS)
 
-lemma induced_dim_n: "induced_vs_vs.dim = n"
+subsection \<open>Standard Basis and Dimension of the Induced Vector Space\<close>
+
+definition standard_basis_vec :: "nat \<Rightarrow> 'a vec" where
+  "standard_basis_vec i = vec n (\<lambda>k. if k = i then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>)"
+
+definition standard_basis_n :: "'a vec set" where
+  "standard_basis_n = standard_basis_vec ` {0..<n}"
+
+lemma inj_standard_basis: "inj_on standard_basis_vec {0..<n}"
+proof (unfold inj_on_def, safe)
+  fix i :: nat and j :: nat
+  assume "i \<in> {0..<n}" and "j \<in> {0..<n}" and "standard_basis_vec i = standard_basis_vec j"
+  hence "standard_basis_vec i $ j = \<one>\<^bsub>F\<^esub>"
+    unfolding standard_basis_vec_def
+    by simp
+  moreover have "i \<noteq> j \<Longrightarrow> standard_basis_vec i $ j = \<zero>\<^bsub>F\<^esub>"
+    unfolding standard_basis_vec_def
+    using \<open>i \<in> {0..<n}\<close> \<open>j \<in> {0..<n}\<close>
+    by simp
+  ultimately show "i = j"
+    by auto
+qed
+
+lemma induced_basis_n: "induced_vs_vs.basis standard_basis_n"
   sorry
 
+lemma induced_dim_n: "induced_vs_vs.dim = n"
+proof -
+  have "card standard_basis_n = n"
+    unfolding standard_basis_n_def
+    by (metis inj_standard_basis card_image card_atLeastLessThan diff_zero)
+  moreover have "finite standard_basis_n"
+    unfolding standard_basis_n_def
+    by simp
+  ultimately show ?thesis
+    using induced_vs_vs.dim_basis[of standard_basis_n] induced_basis_n 
+    by argo
+qed
+
+lemma fin_dim: "induced_vs_vs.fin_dim"
+  using induced_basis_n
+  unfolding induced_vs_vs.basis_def induced_vs_vs.fin_dim_def standard_basis_n_def
+  by auto
+
+subsection \<open>TODO: Cleanup\<close>
+  
 lemma additive_inverse[simp]:
   assumes
     "v \<in> V"
@@ -469,11 +515,15 @@ next
   qed
 qed
 
+subsection \<open>Orthogonality in the Induced Vector Space Based on the Standard Scalar Product\<close>
 
 definition orthogonal where
   "orthogonal u v = (field.scalar_prod F u v = \<zero>\<^bsub>F\<^esub>)"
 
-lemma orthogonal_symm: "orthogonal u v = orthogonal v u" sorry
+lemma orthogonal_symm: "orthogonal u v = orthogonal v u"
+  unfolding orthogonal_def
+  using induced_vs_vs.scalar_prod_sym induced_vs_vs.scalar_prod_def
+  by metis
 
 lemma zero_orthogonal:
   assumes
@@ -501,19 +551,23 @@ proof -
 qed
 end
 
-locale induced_subspace = subspace K W "induced_vs.VS K n" + induced_vs K n for K W n
-begin
+subsection \<open>Subspaces of the Induced Vector Space\<close>
+
+locale induced_subspace = sub?: subspace K W "induced_vs.VS K n" + kn?: induced_vs K n for K W n
+begin                      
 
 abbreviation "subspace_obj \<equiv> vectorspace.vs VS W"
 lemma sub_vs: "vectorspace K subspace_obj"
   using subspace_axioms vectorspace.subspace_is_vs vs by blast
 
+subsection \<open>Orthogonal Complement of a Subspace\<close>
+
 abbreviation orthogonal_carrier where
   "orthogonal_carrier \<equiv> {v \<in> V . (\<forall>w \<in> W. orthogonal v w)}"
 
-lemma orthogonal_subspace: "subspace K orthogonal_carrier VS"
-  sorry
-
 end
+
+lemma (in induced_subspace) orthogonal_subspace: "induced_subspace K orthogonal_carrier n"
+  sorry
 
 end

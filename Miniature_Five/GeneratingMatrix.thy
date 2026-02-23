@@ -13,12 +13,31 @@ definition (in linear_code) generating_matrix:: "'a mat \<Rightarrow> bool"
       \<and> dim_col G = n
       \<and> vectorspace.basis F CS (set (rows G))"
 
-lemma (in linear_code) fin_dim: "vectorspace.fin_dim F VS"
-  sorry
-
 lemma (in linear_code) generating_matrix_exists:
   "\<exists>G :: 'a mat. generating_matrix G"
-  sorry
+proof -
+  interpret space: vectorspace F CS
+    by (rule local.code_space)
+  have "\<exists>B. finite B \<and> space.basis B"
+    using space.finite_basis_exists[OF code_fin_dim]
+    by blast
+  then obtain B :: "'a vec set" where "space.basis B" and "finite B"
+    by blast
+  hence "B \<subseteq> carrier CS"
+    unfolding space.basis_def
+    by satx
+  moreover have "carrier CS \<subseteq> V"
+    sorry
+  ultimately have dim_col: "\<forall>b \<in> B. dim_vec b = n"
+    by blast
+  have "card B = vectorspace.dim F CS"
+    using \<open>space.basis B\<close> \<open>finite B\<close>
+    using space.dim_basis[of B]
+    by simp
+  (* TODO: define matrix ?G with rows = vectors of B *)
+  thus "Ex generating_matrix"
+    sorry
+qed
 
 text \<open>The reference now claims that every linear code has a generating matrix
 in standard form (where the left side of the matrix is $I_k$). This does not make sense
@@ -108,6 +127,9 @@ lemma orthogonal_dim_ker:
   using orthogonal_kernel
   by simp
 
+lemma code_img_gen: "code.CS = RS\<lparr>carrier:=lin_map.imT\<rparr>"
+  sorry
+
 lemma orthogonal_dim_img:
   "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) = 
     n - vectorspace.dim F code.CS"
@@ -117,24 +139,16 @@ proof -
     using lin_map.rank_nullity_main[OF code.fin_dim] orthogonal_kernel
     by presburger
   moreover have "lin_map.V.dim = n"
-    sorry
+    using code.induced_dim_n
+    by satx
   moreover have "RS\<lparr>carrier:=lin_map.imT\<rparr> = (lin_map.W.vs lin_map.imT)"
     by simp
-  moreover have "code.CS = RS\<lparr>carrier:=lin_map.imT\<rparr>"
-    sorry
   ultimately show ?thesis
+    using code_img_gen
     by simp
 qed
 
 end
-
-lemma (in linear_code) code_dim:
-  "vectorspace.dim F CS < n"
-  sorry
-
-lemma (in linear_code) orth_space:
-  "induced_subspace F orthogonal_carrier n"
-  sorry
 
 lemma (in induced_subspace) dim_zero:
   assumes "W = {zero_vec}"
@@ -150,8 +164,7 @@ lemma (in linear_code) orthogonal_linear_code:
     "linear_code F orthogonal_carrier n"
 proof (unfold linear_code_def linear_code_axioms_def, safe)
   show "induced_subspace F orthogonal_carrier n"     
-    using orth_space
-    by satx
+    by (rule local.ind.orthogonal_subspace)
 next
   have "orthogonal_carrier \<subseteq> words" by auto
   have "finite orthogonal_carrier" using finite by fastforce
@@ -170,8 +183,7 @@ next
       using \<open>{zero_vec} \<subseteq> orthogonal_carrier\<close> \<open>finite orthogonal_carrier\<close>
       by (simp add: card_subset_eq)
     interpret orth_ind_space: induced_subspace F orthogonal_carrier n
-      using orth_space
-      by satx
+      by (rule local.ind.orthogonal_subspace)
     interpret orth_vec_space: vectorspace F orth_ind_space.subspace_obj
       by (rule local.orth_ind_space.sub_vs)
     from generating_matrix_exists obtain G :: "'a mat" where "generating_matrix G"
@@ -214,7 +226,9 @@ proof -
     using assms
     unfolding field.mult_mat_vec_def[OF field_F]
     by simp
-  interpret orth_lin: linear_code F orthogonal_carrier n sorry
+  interpret orth_lin: linear_code F orthogonal_carrier n
+    using orthogonal_linear_code
+    by blast
   have "vectorspace.basis F (W\<lparr>carrier := orthogonal_carrier\<rparr>) (set (rows P))"
     using assms
     unfolding parity_check_matrix_def
@@ -223,9 +237,9 @@ proof -
     using orth_lin.orthogonal_linear_code
     by algebra
   then have "set (rows P) \<subseteq> orthogonal_carrier"
-    using orth_lin.linear_code_axioms linear_code.code_space
-    using vectorspace.basis_def 
-    sorry
+    using orth_lin.linear_code_axioms orth_lin.code_space
+    using vectorspace.basis_def[of F "W\<lparr>carrier := orthogonal_carrier\<rparr>"]
+    by simp
   moreover have "rows P ! i \<in> set (rows P)"
     using assms rows_def[of P]
     by simp

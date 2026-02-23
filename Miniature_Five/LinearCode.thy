@@ -2,16 +2,55 @@ theory LinearCode
   imports "../Thirty_Three_Miniatures_Root" "Code" "InducedVectorspace"
 begin
 
-locale linear_code = induced_subspace F C n + code "carrier F" n C for F C n
+section \<open>Linear Codes\<close>
+
+locale linear_code = ind?: induced_subspace F C n + code?: code "carrier F" n C for F C n
   + assumes
   "C \<noteq> V"
 begin
 
 abbreviation "W \<equiv> VS"
-
 abbreviation "CS \<equiv> subspace_obj"
 corollary code_space: "vectorspace F CS"
   by (rule sub_vs)
+
+subsection \<open>Dimension of a Linear Code\<close>
+
+lemma (in subspace) dim_le: "vectorspace.dim K (V\<lparr>carrier:=W\<rparr>) \<le> vectorspace.dim K V" 
+  using vectorspace.dim_li_is_basis
+  sorry
+
+lemma (in subspace) dim_eq_imp_space_eq: 
+  "vectorspace.dim K (V\<lparr>carrier:=W\<rparr>) = vectorspace.dim K V \<Longrightarrow> carrier V = W"
+  sorry
+
+lemma (in linear_code) code_dim:
+  "vectorspace.dim F subspace_obj < n"
+proof (rule ccontr)
+  assume "\<not> vectorspace.dim F subspace_obj < n"
+  hence "vectorspace.dim F subspace_obj \<ge> n"
+    by presburger
+  moreover have "n = vectorspace.dim F VS"
+    using local.ind.kn.induced_dim_n
+    by simp
+  moreover have "vectorspace.dim F subspace_obj \<le> vectorspace.dim F VS"
+    using local.ind.sub.dim_le
+    by satx
+  ultimately have "vectorspace.dim F subspace_obj = n"
+    by presburger
+  hence "C = V"
+    using local.ind.sub.dim_eq_imp_space_eq induced_dim_n
+    by simp
+  thus "False"
+    using local.linear_code_axioms
+    unfolding linear_code_def linear_code_axioms_def
+    by satx
+qed
+
+lemma code_fin_dim: "vectorspace.fin_dim F subspace_obj"
+  sorry
+
+subsection \<open>TODO: Describe Section\<close>
 
 lemma add_codeword_group: "group (add_monoid CS)"
   using module.submodule_is_module[of F W C] vectorspace_def[of F W]
@@ -65,6 +104,8 @@ proof -
     using monoid.Units_inv_closed[of "add_monoid CS" v]
     using group_def[of "add_monoid CS"] add_codeword_group by simp
 qed
+
+subsection \<open>Hamming Distance in a Linear Code\<close>
 
 lemma hamming_distance_subtract:
   assumes
