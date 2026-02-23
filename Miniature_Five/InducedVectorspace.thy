@@ -680,33 +680,4 @@ end
 lemma (in induced_subspace) orthogonal_subspace: "induced_subspace K orthogonal_carrier n"
   sorry
 
-
-subsection \<open>TODO: Move to MoreVectorSpace\<close>
-
-lemma (in vectorspace) trivial_space:
-  "subspace K {\<zero>\<^bsub>V\<^esub>} V"
-proof (unfold subspace_def, safe)
-  show "vectorspace K V"
-    by (rule local.vectorspace_axioms)
-next
-  show "LinearCombinations.submodule K {\<zero>\<^bsub>V\<^esub>} V"
-    sorry
-qed
-
-lemma (in vectorspace) trivial_space_dim_zero:
-  "vectorspace.dim K (V\<lparr>carrier:={\<zero>\<^bsub>V\<^esub>}\<rparr>) = 0"
-  sorry
-
-lemma (in induced_subspace) dim_zero:
-  "vectorspace.dim K (VS\<lparr>carrier:={zero_vec}\<rparr>) = 0"
-proof -
-  interpret vec_space: vectorspace K "induced_vs.VS K n"
-    by (rule local.kn.vectorspace_VS)
-  have "\<zero>\<^bsub>induced_vs.VS K n\<^esub> = zero_vec"
-    by simp
-  thus ?thesis
-    using vec_space.trivial_space_dim_zero
-    by presburger
-qed
-
 end

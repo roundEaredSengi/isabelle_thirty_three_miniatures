@@ -1,5 +1,5 @@
 theory LinearCode
-  imports "../Thirty_Three_Miniatures_Root" "Code" "InducedVectorspace"
+  imports "../Thirty_Three_Miniatures_Root" Code MoreVectorspace
 begin
 
 section \<open>Linear Codes\<close>
@@ -15,14 +15,6 @@ corollary code_space: "vectorspace F CS"
   by (rule sub_vs)
 
 subsection \<open>Dimension of a Linear Code\<close>
-
-lemma (in subspace) dim_le: "vectorspace.dim K (V\<lparr>carrier:=W\<rparr>) \<le> vectorspace.dim K V" 
-  using vectorspace.dim_li_is_basis
-  sorry
-
-lemma (in subspace) dim_eq_imp_space_eq: 
-  "vectorspace.dim K (V\<lparr>carrier:=W\<rparr>) = vectorspace.dim K V \<Longrightarrow> carrier V = W"
-  sorry
 
 lemma (in linear_code) code_dim:
   "vectorspace.dim F subspace_obj < n"
@@ -48,7 +40,7 @@ proof (rule ccontr)
 qed
 
 lemma code_fin_dim: "vectorspace.fin_dim F subspace_obj"
-  sorry
+  by (rule ind.sub.fin_sub_dim[of F, OF ind.kn.fin_dim])
 
 subsection \<open>TODO: Describe Section\<close>
 
