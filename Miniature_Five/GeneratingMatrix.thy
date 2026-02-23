@@ -29,7 +29,8 @@ proof -
     unfolding space.basis_def
     by satx
   moreover have "carrier CS \<subseteq> V"
-    sorry
+    using words_subs
+    by simp
   ultimately have dim_col: "\<forall>b \<in> B. dim_vec b = n"
     by blast
   have "card B = vectorspace.dim F CS"
@@ -170,7 +171,7 @@ proof (unfold linear_code_def linear_code_axioms_def, safe)
 next
   have "orthogonal_carrier \<subseteq> words" by auto
   have "finite orthogonal_carrier" using finite by fastforce
-  show "code E n orthogonal_carrier"
+  show code: "code E n orthogonal_carrier"
   proof (standard, simp add: finite_alphabet, safe)
     assume "\<not> 1 < card orthogonal_carrier" and "finite orthogonal_carrier"
     then have card: "card orthogonal_carrier \<le> 1"
@@ -191,7 +192,9 @@ next
     from generating_matrix_exists obtain G :: "'a mat" where "generating_matrix G"
       by meson
     then interpret g_hom: linear_code_generator F C n G
-      sorry
+      unfolding linear_code_generator_def linear_code_generator_axioms_def
+      using linear_code_axioms
+      by satx
     have "orth_vec_space.dim = n - vectorspace.dim F CS"  
       using g_hom.orthogonal_dim_img
       by satx
@@ -201,16 +204,28 @@ next
     finally have "orth_vec_space.dim > 0"
       by simp
     moreover have "vectorspace.dim F (VS\<lparr>carrier:={zero_vec}\<rparr>) = 0"
-      using induced_subspace.dim_zero[of F "{zero_vec}" n F]
-      sorry
+      by (rule local.ind.dim_zero)
     ultimately show "False"
       using trivial
       by simp
   qed
-next
-  assume "orthogonal_carrier = {v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E}"
-  show "False"
+  assume eq_carr: "orthogonal_carrier = {v. dim_vec v = n \<and> set\<^sub>v v \<subseteq> E}"
+  have "orthogonal_carrier \<noteq> V"
     sorry
+  then interpret orth_code: linear_code F orthogonal_carrier n
+    using code orthogonal_subspace
+    unfolding linear_code_def linear_code_axioms_def
+    by satx
+  have "vectorspace.dim F (VS\<lparr>carrier:=orthogonal_carrier\<rparr>) < n"
+    using orth_code.code_dim
+    by satx
+  moreover have "vectorspace.dim F VS = n"
+    by (rule local.ind.kn.induced_dim_n)
+  moreover have "vectorspace.dim F (VS\<lparr>carrier:=orthogonal_carrier\<rparr>) = vectorspace.dim F VS"
+    using eq_carr
+    by simp
+  ultimately show "False"
+    by linarith
 qed
 
 lemma (in linear_code) parity_check:
