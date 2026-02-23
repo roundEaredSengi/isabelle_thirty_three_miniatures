@@ -4,6 +4,8 @@ theory GeneratingMatrix
    CarriersetMatrix
 begin
 
+section \<open>Generating and Parity Check Matrix of a Linear Code\<close>
+
 hide_const (open) Matrix.scalar_prod
 hide_const (open) Matrix.mult_mat_vec
 
@@ -50,6 +52,8 @@ definition (in linear_code) parity_check_matrix:: "'a mat \<Rightarrow> bool"
   in
     orthogonal_generating_matrix G"
 
+subsection \<open>Generating Matrix as a Linear Map\<close>
+
 locale linear_code_generator = code: linear_code +
   fixes G :: "'a mat"
   assumes gen: "code.generating_matrix G"
@@ -77,6 +81,13 @@ next
   show "mod_hom F code.VS RS generator_hom"
     sorry
 qed
+
+subsection \<open>Code as the Image of the Generating Matrix\<close>
+
+lemma code_img_gen: "code.CS = RS\<lparr>carrier:=lin_map.imT\<rparr>"
+  sorry
+
+subsection \<open>Orthogonal Carrier as the Kernel of the Generating Matrix\<close>
 
 lemma orthogonal_kernel:
   "code.orthogonal_carrier = lin_map.kerT"
@@ -127,8 +138,7 @@ lemma orthogonal_dim_ker:
   using orthogonal_kernel
   by simp
 
-lemma code_img_gen: "code.CS = RS\<lparr>carrier:=lin_map.imT\<rparr>"
-  sorry
+subsection \<open>Dimensions of the Orthogonal Carrier and the Code\<close>
 
 lemma orthogonal_dim_img:
   "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) = 
@@ -150,15 +160,7 @@ qed
 
 end
 
-lemma (in induced_subspace) dim_zero:
-  assumes "W = {zero_vec}"
-  shows
-    "vectorspace.dim F subspace_obj = 0"
-  sorry
-
-lemma (in induced_vs) trivial_space:
-  "induced_subspace F {zero_vec} n"
-  sorry
+subsection \<open>Orthogonal Carrier is also a Linear Code\<close>
 
 lemma (in linear_code) orthogonal_linear_code:
     "linear_code F orthogonal_carrier n"

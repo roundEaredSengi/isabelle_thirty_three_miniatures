@@ -570,4 +570,14 @@ end
 lemma (in induced_subspace) orthogonal_subspace: "induced_subspace K orthogonal_carrier n"
   sorry
 
+lemma (in induced_vs) trivial_space:
+  "induced_subspace F {zero_vec} n"
+  sorry
+
+lemma (in induced_subspace) dim_zero:
+  assumes "W = {zero_vec}"
+  shows
+    "vectorspace.dim F subspace_obj = 0"
+  sorry
+
 end
