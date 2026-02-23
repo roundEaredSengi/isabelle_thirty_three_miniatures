@@ -409,17 +409,19 @@ lemma finsum_standard_basis_entries:
   shows "(\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i) = a (standard_basis_vec i)"
 proof -
   have 
-    "(\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i) = (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_vec ` {0..<n}. (a b \<odot>\<^bsub>VS\<^esub> b) $ i)"
-    sorry
+    "(\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (a b \<odot>\<^bsub>VS\<^esub> b) $ i) = 
+      (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_vec ` {0..<n}. (a b \<odot>\<^bsub>VS\<^esub> b) $ i)"
+    by (metis standard_basis_n_def)
   moreover have 
     "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i)"
-    sorry
-  moreover have "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i)"
-    sorry
+    sorry (* TODO finsum on image set? Krise *)
+  moreover have 
+    "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i)"
+    sorry (* TODO finsum on same map *)
   moreover have "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>))"
     by simp
   moreover have "... = a (standard_basis_vec i)"
-    sorry
+    sorry (* TODO adding zeros does not change finsum? Krise 2.0 *)
   ultimately show ?thesis
     by simp
 qed
