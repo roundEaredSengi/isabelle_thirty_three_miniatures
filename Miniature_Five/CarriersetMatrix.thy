@@ -10,11 +10,25 @@ definition (in field) scalar_prod :: "'a vec \<Rightarrow> 'a vec \<Rightarrow> 
 
 lemma (in field) scalar_prod_closed:
   assumes
+    "dim_vec v = dim_vec w"
     "set\<^sub>v v \<subseteq> carrier R"
     "set\<^sub>v w \<subseteq> carrier R"
   shows
     "scalar_prod v w \<in> carrier R"
-  sorry
+proof -
+  have "(\<lambda>i. (v $ i) \<otimes> (w $ i)) \<in> {0..<dim_vec w} \<rightarrow> carrier R"
+  proof
+    fix x
+    assume x: "x \<in> {0..<dim_vec w}"
+    from x assms have "v$x \<in> carrier R" using vec_set_def by fastforce
+    moreover from x assms have "w$x \<in> carrier R" using vec_set_def by force
+    ultimately show "(v $ x) \<otimes> (w $ x) \<in> carrier R" by simp
+  qed
+  then show ?thesis
+    unfolding scalar_prod_def
+    using finsum_closed
+    by simp
+qed
 
 lemma (in field) scalar_prod_sym:
   assumes
