@@ -794,6 +794,6 @@ proof -
   thus ?thesis
     using vec_space.trivial_space_dim_zero
     by presburger
-qed
+qed 
 
 end

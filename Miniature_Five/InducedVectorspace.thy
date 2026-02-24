@@ -1059,82 +1059,135 @@ qed
 subsection \<open>Standard Scalar Product Linearity\<close>
 
 lemmas field_finsum_suc = abelian_monoid.finsum_Suc[OF induced_vs_vs.module.R.abelian_monoid_axioms]
-  
-lemma sclar_prod_s_linear:
+
+lemma sclar_prod_smult_linear:
   assumes
     "\<alpha> \<in> E"
     "u \<in> V"
     "v \<in> V"
   shows
     "field.scalar_prod F (\<alpha> \<odot>\<^bsub>VS\<^esub> u) v = \<alpha> \<otimes>\<^bsub>F\<^esub> (field.scalar_prod F u v)"
-  using assms
-proof (unfold field.scalar_prod_def[OF field_F], induction n arbitrary: u v)
-  case 0
-  fix v
-  assume "v \<in> {v. dim_vec v = 0 \<and> set\<^sub>v v \<subseteq> E}"
-  then have "dim_vec v = 0" by simp
-  then have "(\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec
-                   v}. (\<alpha> \<odot>\<^bsub>\<lparr>carrier = {v. dim_vec v = 0 \<and> set\<^sub>v v \<subseteq> E}, monoid.mult = undefined, one = undefined, zero = induced_vs.zero_vec F 0, add = induced_vs.addition F 0, module.smult = induced_vs.scaling F 0\<rparr>\<^esub>
-                        u) $
-                       i \<otimes>\<^bsub>F\<^esub>
-                       v $ i) = \<zero>\<^bsub>F\<^esub>" by simp
-  also have "\<dots> = \<alpha> \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>"
-    using \<open>dim_vec v = 0\<close> 0
-    by algebra
-  also have "\<dots> = \<alpha> \<otimes>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. u $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
-    using \<open>dim_vec v = 0\<close>
-    by simp
-  finally show "(\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec
-                   v}. (\<alpha> \<odot>\<^bsub>\<lparr>carrier = {v. dim_vec v = 0 \<and> set\<^sub>v v \<subseteq> E}, monoid.mult = undefined, one = undefined, zero = induced_vs.zero_vec F 0, add = induced_vs.addition F 0, module.smult = induced_vs.scaling F 0\<rparr>\<^esub>
-                        u) $
-                       i \<otimes>\<^bsub>F\<^esub>
-                       v $ i) = \<alpha> \<otimes>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. u $ i \<otimes>\<^bsub>F\<^esub> v $ i)" by satx
-next
-  case (Suc n)
-  fix u v
-  assume assms: "u \<in> {v. dim_vec v = Suc n \<and> set\<^sub>v v \<subseteq> E}" "v \<in> {v. dim_vec v = Suc n \<and> set\<^sub>v v \<subseteq> E}"
+proof -
+  let ?f = "\<lambda>i. (\<alpha> \<odot>\<^bsub>VS\<^esub> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i"
+  let ?g = "\<lambda>i. \<alpha> \<otimes>\<^bsub>F\<^esub> ((u $ i) \<otimes>\<^bsub>F\<^esub> (v $ i))"
+  let ?h = "\<lambda>i. (u $ i) \<otimes>\<^bsub>F\<^esub> (v $ i)"
 
-  let ?scale = "(\<lambda>\<alpha> u. (\<alpha> \<odot>\<^bsub>\<lparr>carrier = {v. dim_vec v = Suc n \<and> set\<^sub>v v \<subseteq> E}, monoid.mult = undefined, one = undefined, zero = induced_vs.zero_vec F (Suc n), add = induced_vs.addition F (Suc n), module.smult = induced_vs.scaling F (Suc n)\<rparr>\<^esub> u))"
-
-  have "n \<noteq> 0" sorry
-
-  have suc_func: "(\<lambda>i. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i) \<in> {..Suc (n-1)} \<rightarrow> E"
-  sorry(*proof
-    fix x
-    assume "x \<in> {..Suc (n - 1)}"
-    then have "x \<in> {..n}" using \<open>n \<noteq> 0\<close> by simp
-    then have "x \<le> n" by simp
-
-    have "(?scale \<alpha> u) = induced_vs.scaling" using \<open>x \<le> n\<close> scaling_closed assms sorry
-  qed*)
-
+  have eq_map: "\<And>i. i \<in> {0..<dim_vec v} \<Longrightarrow> ?f i = ?g i"
+  proof -
+    fix i :: nat
+    assume "i \<in> {0..<dim_vec v}"
+    hence "i < n"
+      using assms by simp
+    hence "(\<alpha> \<odot>\<^bsub>VS\<^esub> u) $ i = (\<alpha> \<otimes>\<^bsub>F\<^esub> u $ i)"
+      using assms 
+      unfolding scaling_def
+      by simp
+    hence "?f i = (\<alpha> \<otimes>\<^bsub>F\<^esub> u $ i) \<otimes>\<^bsub>F\<^esub> v $ i"
+      by metis
+    moreover have "... = \<alpha> \<otimes>\<^bsub>F\<^esub> (u $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
+      using assms induced_vs_axioms \<open>i < n\<close>
+      unfolding induced_vs_def
+      by (simp add: induced_vs_vs.m_assoc)
+    moreover have "... = ?g i"
+      by simp
+    ultimately show "?f i = ?g i"
+      by metis
+  qed
     
-      
-  from \<open>n \<noteq> 0\<close> have "{0..<dim_vec v} = {..Suc (n-1)}" "{..n-1} = {..<n}"
-    using assms by auto
-  then have "(\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i) = (\<Oplus>\<^bsub>F\<^esub>i\<in>{..Suc (n-1)}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
-    by presburger
-  also have "\<dots> = ((?scale \<alpha> u) $ (Suc (n-1)) \<otimes>\<^bsub>F\<^esub> v $ (Suc (n-1))) \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{..(n-1)}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
-    using field_finsum_suc suc_func
-    by presburger
-  also have "\<dots> = ((?scale \<alpha> u) $ n \<otimes>\<^bsub>F\<^esub> v $ n) \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{..n-1}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
-    using \<open>n \<noteq> 0\<close> by simp
-  also have "\<dots> = ((?scale \<alpha> u) $ n \<otimes>\<^bsub>F\<^esub> v $ n) \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{..<n}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
-    using \<open>{..n-1} = {..<n}\<close>
-    by presburger
+  have pi: "?g \<in> {0..<dim_vec v} \<rightarrow> E" unfolding Pi_def using assms by simp
 
-  show "(\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i) =
-    \<alpha> \<otimes>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. u $ i \<otimes>\<^bsub>F\<^esub> v $ i)" sorry
+  have pi': "?h \<in> {0..<dim_vec v} \<rightarrow> E" unfolding Pi_def using assms by simp
+
+  have 
+    "field.scalar_prod F (\<alpha> \<odot>\<^bsub>VS\<^esub> u) v = 
+      (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. ?f i)"
+    unfolding field.scalar_prod_def[of F, OF field_F]
+    by metis
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. ?g i)"
+    using eq_map pi abelian_monoid.finsum_cong'[
+            OF induced_vs_vs.module.R.abelian_monoid_axioms,
+            of "{0..<dim_vec v}" "{0..<dim_vec v}" ?g ?f]
+    by presburger
+  moreover have "... = \<alpha> \<otimes>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. ?h i)"
+    using semiring.finsum_rdistr[
+        of F "{0..<dim_vec v}" \<alpha> ?h, 
+        OF induced_vs_vs.module.R.semiring_axioms _ assms(1) pi']
+    by simp
+  moreover have "... = \<alpha> \<otimes>\<^bsub>F\<^esub> (field.scalar_prod F u v)"
+    unfolding field.scalar_prod_def[of F, OF field_F]
+    by metis
+  ultimately show ?thesis
+    by metis
 qed
 
-lemma sclar_prod_a_linear:
+lemma scalar_prod_add_linear:
   assumes
     "u \<in> V"
     "v \<in> V"
     "w \<in> V"
   shows
     "field.scalar_prod F (u \<oplus>\<^bsub>VS\<^esub> v) w = (field.scalar_prod F u w) \<oplus>\<^bsub>F\<^esub> (field.scalar_prod F v w)"
-  sorry
+proof -
+  let ?g = "\<lambda>i. ((u \<oplus>\<^bsub>VS\<^esub> v) $ i) \<otimes>\<^bsub>F\<^esub> (w $ i)"
+  let ?f = "\<lambda>i. (u $ i \<oplus>\<^bsub>F\<^esub> v $ i) \<otimes>\<^bsub>F\<^esub> (w $ i)"
+  let ?h = "\<lambda>i. (u $ i \<otimes>\<^bsub>F\<^esub> (w $ i)) \<oplus>\<^bsub>F\<^esub> (v $ i \<otimes>\<^bsub>F\<^esub> (w $ i))"
+  let ?u = "\<lambda>i. u $ i \<otimes>\<^bsub>F\<^esub> w $ i"
+  let ?v = "\<lambda>i. v $ i \<otimes>\<^bsub>F\<^esub> w $ i"
+
+  have "dim_vec w = n"
+    using assms
+    by simp
+
+  have eq_map: "\<And>i. i \<in> {0..<n} \<Longrightarrow> ?g i  = ?f i"
+    using assms
+    unfolding addition_def
+    by simp
+  have pi: "?f \<in> {0..<n} \<rightarrow> E" using assms unfolding Pi_def by auto
+  have eq_map': "\<And>i. i \<in> {0..<n} \<Longrightarrow> ?f i  = ?h i"
+    using assms induced_vs_axioms induced_vs_vs.l_distr
+    unfolding induced_vs_def
+    by simp
+  have pi': "?h \<in> {0..<n} \<rightarrow> E" using assms unfolding Pi_def by simp
+
+  have pi'':  "?u \<in> {0..<n} \<rightarrow> E" using assms unfolding Pi_def by simp
+  have pi''': "?v \<in> {0..<n} \<rightarrow> E" using assms unfolding Pi_def by simp
+
+  have "field.scalar_prod F (u \<oplus>\<^bsub>VS\<^esub> v) w = 
+    (\<Oplus>\<^bsub>F\<^esub>i \<in> {0..<dim_vec w}. ((u \<oplus>\<^bsub>VS\<^esub> v) $ i) \<otimes>\<^bsub>F\<^esub> (w $ i))"
+    using field.scalar_prod_def[of F "u \<oplus>\<^bsub>VS\<^esub> v" w] induced_vs_axioms
+    unfolding induced_vs_def
+    by satx
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub>i \<in> {0..<n}. ((u \<oplus>\<^bsub>VS\<^esub> v) $ i) \<otimes>\<^bsub>F\<^esub> (w $ i))"
+    using assms
+    by simp
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub>i \<in> {0..<n}. ((u $ i \<oplus>\<^bsub>F\<^esub> v $ i) \<otimes>\<^bsub>F\<^esub> (w $ i)))"
+    using eq_map
+          abelian_monoid.finsum_cong'[
+            OF induced_vs_vs.module.R.abelian_monoid_axioms,
+            of "{0..<n}" "{0..<n}" ?f ?g] pi
+    by presburger
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub>i \<in> {0..<n}. ((u $ i \<otimes>\<^bsub>F\<^esub> (w $ i)) \<oplus>\<^bsub>F\<^esub> (v $ i \<otimes>\<^bsub>F\<^esub> (w $ i))))"
+    using eq_map'
+          abelian_monoid.finsum_cong'[
+            OF induced_vs_vs.module.R.abelian_monoid_axioms,
+            of "{0..<n}" "{0..<n}" ?h ?f] pi'
+    by presburger
+  moreover have "... = 
+    (\<Oplus>\<^bsub>F\<^esub>i \<in> {0..<n}. ((u $ i \<otimes>\<^bsub>F\<^esub> (w $ i)))) \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i \<in> {0..<n}. ((v $ i \<otimes>\<^bsub>F\<^esub> (w $ i))))"
+    using pi'' pi'''
+      abelian_monoid.finsum_addf[
+        OF induced_vs_vs.module.R.abelian_monoid_axioms,
+        of ?u "{0..<n}" ?v
+      ]
+    by satx
+  moreover have "... = (field.scalar_prod F u w) \<oplus>\<^bsub>F\<^esub> (field.scalar_prod F v w)"
+    using \<open>dim_vec w = n\<close> field.scalar_prod_def[of F u w] 
+          field.scalar_prod_def[of F v w] induced_vs_axioms
+    unfolding induced_vs_def
+    by presburger
+  ultimately show ?thesis
+    by metis
+qed
 
 subsection \<open>Orthogonality in the Induced Vector Space Based on the Standard Scalar Product\<close>
 
@@ -1226,7 +1279,7 @@ proof -
           have orth: "orthogonal u w" "orthogonal v w" using \<open>w \<in> W\<close> assms by auto
 
           have "field.scalar_prod K (u \<oplus>\<^bsub>VS\<^esub> v) w = (field.scalar_prod K u w) \<oplus>\<^bsub>K\<^esub> field.scalar_prod K v w"
-            using sclar_prod_a_linear assms \<open>w \<in> V\<close> by blast
+            using scalar_prod_add_linear assms \<open>w \<in> V\<close> by blast
           also have "\<dots> = \<zero>\<^bsub>K\<^esub> \<oplus>\<^bsub>K\<^esub> \<zero>\<^bsub>K\<^esub>" using orth orthogonal_def by simp
           also have "\<dots> = \<zero>\<^bsub>K\<^esub>"
             by (simp add: ring.ring_simprules(2,8) ring_F)
@@ -1251,7 +1304,7 @@ proof -
           have "orthogonal v w" using \<open>w \<in> W\<close> assms by auto
 
           have "field.scalar_prod K (c \<odot>\<^bsub>VS\<^esub> v) w = c \<otimes>\<^bsub>K\<^esub> field.scalar_prod K v w"
-            using sclar_prod_s_linear assms \<open>w \<in> V\<close> by auto
+            using sclar_prod_smult_linear assms \<open>w \<in> V\<close> by auto
           also have "\<dots> = c \<otimes>\<^bsub>K\<^esub> \<zero>\<^bsub>K\<^esub>" using \<open>orthogonal v w\<close> orthogonal_def by simp
           also have "\<dots> = \<zero>\<^bsub>K\<^esub>"
             using assms
