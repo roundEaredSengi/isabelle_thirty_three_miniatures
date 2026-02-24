@@ -26,12 +26,11 @@ proof (rule ccontr)
     using local.ind.kn.induced_dim_n
     by simp
   moreover have "vectorspace.dim F subspace_obj \<le> vectorspace.dim F VS"
-    using local.ind.sub.dim_le
-    by satx
+    by (metis dim_le fin_dim)
   ultimately have "vectorspace.dim F subspace_obj = n"
     by presburger
   hence "C = V"
-    using local.ind.sub.dim_eq_imp_space_eq induced_dim_n
+    using local.ind.sub.dim_eq_imp_space_eq induced_dim_n fin_dim
     by simp
   thus "False"
     using local.linear_code_axioms
@@ -40,7 +39,7 @@ proof (rule ccontr)
 qed
 
 lemma code_fin_dim: "vectorspace.fin_dim F subspace_obj"
-  by (rule ind.sub.fin_sub_dim[of F, OF ind.kn.fin_dim])
+  by (metis fin_dim fin_sub_dim)
 
 subsection \<open>TODO: Describe Section\<close>
 
