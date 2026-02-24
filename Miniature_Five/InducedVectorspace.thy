@@ -1297,7 +1297,7 @@ next
     by simp
   also have "... = (a x' \<otimes>\<^bsub>F\<^esub> field.scalar_prod F x' y) \<oplus>\<^bsub>F\<^esub>
     (\<Oplus>\<^bsub>F\<^esub>z\<in>X-{x'}. a z \<otimes>\<^bsub>F\<^esub> induced_vs_vs.scalar_prod z y)"
-    using Suc(8) \<open>x' \<in> X\<close> Suc(5) Suc(6) sclar_prod_smult_linear[of "a x'" x' y]
+    using Suc(8) \<open>x' \<in> X\<close> Suc(5) Suc(6) scalar_prod_smult_linear[of "a x'" x' y]
     unfolding Pi_def
     by auto
   also have "... = (\<Oplus>\<^bsub>F\<^esub>z\<in>X. a z \<otimes>\<^bsub>F\<^esub> induced_vs_vs.scalar_prod z y)"
