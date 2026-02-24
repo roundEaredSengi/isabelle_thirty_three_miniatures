@@ -106,7 +106,8 @@ proof (unfold lin_map.ker_def, simp, safe)
   hence "\<forall>i \<in> {0..<dim_row G}. field.scalar_prod F (row G i) v = \<zero>\<^bsub>F\<^esub>"
     using orth field.scalar_prod_sym[of F, OF lin_map.field_axioms]
     unfolding code.orthogonal_def
-    by metis
+    using dim vec code.words_subs
+    by auto
   hence "lin_map.mult_mat_vec G v = vec m (\<lambda>i. \<zero>\<^bsub>F\<^esub>)"
     unfolding lin_map.mult_mat_vec_def m_def
     by auto
@@ -178,11 +179,15 @@ next
   hence "lin_map.scalar_prod w v = \<zero>\<^bsub>F\<^esub>"
     using lin_comb
     sorry
-  thus "row_induced.orthogonal v w"
+  then have "row_induced.orthogonal w v"
     unfolding row_induced.orthogonal_def
-    using lin_map.scalar_prod_sym
-    by metis
-qed
+    by satx
+  moreover have "v \<in> code.V" using dim vec by simp
+  moreover have "w \<in> code.V" using in_C code.words_subs by auto
+  ultimately show "row_induced.orthogonal v w"
+    using row_induced.orthogonal_symm
+    by auto
+  qed
 
 lemma orthogonal_dim_ker:
   "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) = 

@@ -985,10 +985,21 @@ subsection \<open>Orthogonality in the Induced Vector Space Based on the Standar
 definition orthogonal where
   "orthogonal u v = (field.scalar_prod F u v = \<zero>\<^bsub>F\<^esub>)"
 
-lemma orthogonal_symm: "orthogonal u v = orthogonal v u"
-  unfolding orthogonal_def
-  using induced_vs_vs.scalar_prod_sym induced_vs_vs.scalar_prod_def
-  by metis
+lemma orthogonal_symm:
+  assumes
+    "dim_vec u = dim_vec v"
+    "set\<^sub>v u \<subseteq> E"
+    "set\<^sub>v v \<subseteq> E"
+shows
+  "orthogonal u v = orthogonal v u"
+proof -
+  have "induced_vs_vs.scalar_prod u v = induced_vs_vs.scalar_prod v u"
+    using induced_vs_vs.scalar_prod_sym assms
+    by simp
+  then show ?thesis
+    unfolding orthogonal_def
+    by presburger
+qed
 
 lemma zero_orthogonal:
   assumes
