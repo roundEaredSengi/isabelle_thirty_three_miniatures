@@ -1189,6 +1189,13 @@ proof -
     by metis
 qed
 
+lemma scalar_prod_lincomb:
+  fixes X :: "'a vec set" and x :: "'a vec" and y :: "'a vec" and a :: "'a vec \<Rightarrow> 'a"
+  assumes "finite X" and "x = module.lincomb VS a A" and "X \<subseteq> V" and "y \<in> V" and "x \<in> V"
+  shows
+    "field.scalar_prod F x y = (\<Oplus>\<^bsub>F\<^esub>z \<in> A. a z \<otimes>\<^bsub>F\<^esub> field.scalar_prod F z y)"
+  sorry
+
 subsection \<open>Orthogonality in the Induced Vector Space Based on the Standard Scalar Product\<close>
 
 definition orthogonal where

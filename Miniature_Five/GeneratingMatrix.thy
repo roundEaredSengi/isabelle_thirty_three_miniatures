@@ -166,6 +166,9 @@ next
     dim: "n = dim_vec v" and 
     vec: "set\<^sub>v v \<subseteq> code.E" and 
     in_ker: "lin_map.mult_mat_vec G v = row_induced.zero_vec"
+  have mod: "Module.module F (lin_map.V.vs C)"
+    using local.code.ind.sub_vs VectorSpace.vectorspace.axioms(1)
+    by auto
   have "vectorspace.basis F code.CS (set (rows G))"
     using gen
     unfolding code.generating_matrix_def 
@@ -193,9 +196,31 @@ next
     using module.span_def[of F code.CS "set (rows G)"]
     by auto
   then obtain \<alpha> :: "'a vec \<Rightarrow> 'a" where 
-    "\<alpha> \<in> set (rows G) \<rightarrow> row_induced.E" and 
+    pi: "\<alpha> \<in> set (rows G) \<rightarrow> row_induced.E" and 
     lin_comb: "w = module.lincomb code.CS \<alpha> (set (rows G))"
     by auto
+  moreover have "set (rows G) \<subseteq> C"
+    using gen vectorspace.basis_def[of F code.CS "set (rows G)", OF local.code.code_space]
+    unfolding code.generating_matrix_def 
+    by simp
+  moreover have "finite (set (rows G))"
+    by simp
+  ultimately have 
+    "(\<Oplus>\<^bsub>code.CS\<^esub>v\<in>set (rows G). \<alpha> v \<odot>\<^bsub>code.VS\<^esub> v) = (\<Oplus>\<^bsub>code.VS\<^esub>v\<in>set (rows G). \<alpha> v \<odot>\<^bsub>code.VS\<^esub> v)"
+    using \<open>set (rows G) \<subseteq> C\<close>
+          subspace.lincomb_sub_is_lincomb_parent[of F C code.VS "set (rows G)" \<alpha>, OF code.ind.sub.subspace_axioms]
+    by satx
+  moreover have 
+    "(\<Oplus>\<^bsub>code.CS\<^esub>v\<in>set (rows G). \<alpha> v \<odot>\<^bsub>code.VS\<^esub> v) = (\<Oplus>\<^bsub>code.CS\<^esub>v\<in>set (rows G). \<alpha> v \<odot>\<^bsub>code.CS\<^esub> v)"
+    by simp
+  ultimately have 
+    "module.lincomb code.CS \<alpha> (set (rows G)) = module.lincomb code.VS \<alpha> (set (rows G))"
+    unfolding module.lincomb_def[of F code.VS, OF lin_map.V.module.module_axioms] 
+              module.lincomb_def[of F code.CS, OF mod]
+    by metis
+  hence lincomb_in_induced_space: "w = module.lincomb code.VS \<alpha> (set (rows G))"
+    using lin_comb
+    by metis
   have "\<forall>b \<in> set (rows G). \<exists>j \<in> {0..<m}. b = row G j"
     unfolding rows_def m_def
     by auto
@@ -215,11 +240,41 @@ next
   moreover have "\<forall>j \<in> {0..<m}. row_induced.zero_vec $ j = \<zero>\<^bsub>F\<^esub>"
     unfolding row_induced.zero_vec_def
     by simp
-  ultimately have "\<forall>b \<in> set (rows G). lin_map.scalar_prod b v = \<zero>\<^bsub>F\<^esub>"
+  ultimately have zero: "\<forall>b \<in> set (rows G). lin_map.scalar_prod b v = \<zero>\<^bsub>F\<^esub>"
     by simp
-  hence "lin_map.scalar_prod w v = \<zero>\<^bsub>F\<^esub>"
-    using lin_comb
-    sorry
+
+  let ?g = "\<lambda>z. \<zero>\<^bsub>F\<^esub>"
+  let ?f = "\<lambda>z. \<alpha> z \<otimes>\<^bsub>F\<^esub> lin_map.scalar_prod z v"
+  have "\<And>b. b \<in> set (rows G) \<Longrightarrow> \<alpha> b \<otimes>\<^bsub>F\<^esub> lin_map.scalar_prod b v = \<alpha> b \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>"
+    using zero
+    by metis
+  moreover have "\<And>b. b \<in> set (rows G) \<Longrightarrow> \<alpha> b \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub> = \<zero>\<^bsub>F\<^esub>"
+    using pi
+    unfolding Pi_def
+    by simp
+  ultimately have eq_map: "\<And>b. b \<in> set (rows G) \<Longrightarrow> ?g b = ?f b"
+    by auto
+  have pi': "?g \<in> set (rows G) \<rightarrow> code.E" unfolding Pi_def by simp
+
+  have "induced_vs F" by (rule code.ind.kn.induced_vs_axioms)
+  moreover from \<open>set (rows G) \<subseteq> C\<close> have "set (rows G) \<subseteq> code.V"
+    using code.words_subs
+    by blast
+  moreover have "v \<in> code.V" using vec dim by simp
+  moreover have "w \<in> code.V" using \<open>w \<in> C\<close> by (rule code.code.codewords_words)
+  ultimately have 
+    "lin_map.scalar_prod w v = (\<Oplus>\<^bsub>F\<^esub>z\<in>set (rows G). \<alpha> z \<otimes>\<^bsub>F\<^esub> lin_map.scalar_prod z v)"
+    using induced_vs.scalar_prod_lincomb[of F "set (rows G)" w n \<alpha> "set (rows G)" v] 
+          lincomb_in_induced_space
+    by simp
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub>z\<in>set (rows G). \<zero>\<^bsub>F\<^esub>)"
+    using zero eq_map pi abelian_monoid.finsum_cong'[
+        OF lin_map.V.module.R.abelian_monoid_axioms, of "set (rows G)" "set (rows G)" ?f ?g]
+    by simp
+  moreover have "... = \<zero>\<^bsub>F\<^esub>"
+    by simp
+  ultimately have "lin_map.scalar_prod w v = \<zero>\<^bsub>F\<^esub>"
+    by simp
   then have "row_induced.orthogonal w v"
     unfolding row_induced.orthogonal_def
     by satx
