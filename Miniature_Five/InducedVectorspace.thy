@@ -900,6 +900,86 @@ next
   qed
 qed
 
+subsection \<open>Standard Scalar Product Linearity\<close>
+
+lemmas field_finsum_suc = abelian_monoid.finsum_Suc[OF induced_vs_vs.module.R.abelian_monoid_axioms]
+  
+lemma sclar_prod_s_linear:
+  assumes
+    "\<alpha> \<in> E"
+    "u \<in> V"
+    "v \<in> V"
+  shows
+    "field.scalar_prod F (\<alpha> \<odot>\<^bsub>VS\<^esub> u) v = \<alpha> \<otimes>\<^bsub>F\<^esub> (field.scalar_prod F u v)"
+  using assms
+proof (unfold field.scalar_prod_def[OF field_F], induction n arbitrary: u v)
+  case 0
+  fix v
+  assume "v \<in> {v. dim_vec v = 0 \<and> set\<^sub>v v \<subseteq> E}"
+  then have "dim_vec v = 0" by simp
+  then have "(\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec
+                   v}. (\<alpha> \<odot>\<^bsub>\<lparr>carrier = {v. dim_vec v = 0 \<and> set\<^sub>v v \<subseteq> E}, monoid.mult = undefined, one = undefined, zero = induced_vs.zero_vec F 0, add = induced_vs.addition F 0, module.smult = induced_vs.scaling F 0\<rparr>\<^esub>
+                        u) $
+                       i \<otimes>\<^bsub>F\<^esub>
+                       v $ i) = \<zero>\<^bsub>F\<^esub>" by simp
+  also have "\<dots> = \<alpha> \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>"
+    using \<open>dim_vec v = 0\<close> 0
+    by algebra
+  also have "\<dots> = \<alpha> \<otimes>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. u $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
+    using \<open>dim_vec v = 0\<close>
+    by simp
+  finally show "(\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec
+                   v}. (\<alpha> \<odot>\<^bsub>\<lparr>carrier = {v. dim_vec v = 0 \<and> set\<^sub>v v \<subseteq> E}, monoid.mult = undefined, one = undefined, zero = induced_vs.zero_vec F 0, add = induced_vs.addition F 0, module.smult = induced_vs.scaling F 0\<rparr>\<^esub>
+                        u) $
+                       i \<otimes>\<^bsub>F\<^esub>
+                       v $ i) = \<alpha> \<otimes>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. u $ i \<otimes>\<^bsub>F\<^esub> v $ i)" by satx
+next
+  case (Suc n)
+  fix u v
+  assume assms: "u \<in> {v. dim_vec v = Suc n \<and> set\<^sub>v v \<subseteq> E}" "v \<in> {v. dim_vec v = Suc n \<and> set\<^sub>v v \<subseteq> E}"
+
+  let ?scale = "(\<lambda>\<alpha> u. (\<alpha> \<odot>\<^bsub>\<lparr>carrier = {v. dim_vec v = Suc n \<and> set\<^sub>v v \<subseteq> E}, monoid.mult = undefined, one = undefined, zero = induced_vs.zero_vec F (Suc n), add = induced_vs.addition F (Suc n), module.smult = induced_vs.scaling F (Suc n)\<rparr>\<^esub> u))"
+
+  have "n \<noteq> 0" sorry
+
+  have suc_func: "(\<lambda>i. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i) \<in> {..Suc (n-1)} \<rightarrow> E"
+  sorry(*proof
+    fix x
+    assume "x \<in> {..Suc (n - 1)}"
+    then have "x \<in> {..n}" using \<open>n \<noteq> 0\<close> by simp
+    then have "x \<le> n" by simp
+
+    have "(?scale \<alpha> u) = induced_vs.scaling" using \<open>x \<le> n\<close> scaling_closed assms sorry
+  qed*)
+
+    
+      
+  from \<open>n \<noteq> 0\<close> have "{0..<dim_vec v} = {..Suc (n-1)}" "{..n-1} = {..<n}"
+    using assms by auto
+  then have "(\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i) = (\<Oplus>\<^bsub>F\<^esub>i\<in>{..Suc (n-1)}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
+    by presburger
+  also have "\<dots> = ((?scale \<alpha> u) $ (Suc (n-1)) \<otimes>\<^bsub>F\<^esub> v $ (Suc (n-1))) \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{..(n-1)}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
+    using field_finsum_suc suc_func
+    by presburger
+  also have "\<dots> = ((?scale \<alpha> u) $ n \<otimes>\<^bsub>F\<^esub> v $ n) \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{..n-1}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
+    using \<open>n \<noteq> 0\<close> by simp
+  also have "\<dots> = ((?scale \<alpha> u) $ n \<otimes>\<^bsub>F\<^esub> v $ n) \<oplus>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{..<n}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i)"
+    using \<open>{..n-1} = {..<n}\<close>
+    by presburger
+
+  show "(\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. (?scale \<alpha> u) $ i \<otimes>\<^bsub>F\<^esub> v $ i) =
+    \<alpha> \<otimes>\<^bsub>F\<^esub> (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<dim_vec v}. u $ i \<otimes>\<^bsub>F\<^esub> v $ i)" sorry
+qed
+
+lemma sclar_prod_a_linear:
+  assumes
+    "u \<in> V"
+    "v \<in> V"
+    "w \<in> V"
+  shows
+    "field.scalar_prod F (u \<oplus>\<^bsub>VS\<^esub> v) w = (field.scalar_prod F u w) \<oplus>\<^bsub>F\<^esub> (field.scalar_prod F v w)"
+  sorry
+
 subsection \<open>Orthogonality in the Induced Vector Space Based on the Standard Scalar Product\<close>
 
 definition orthogonal where
@@ -934,6 +1014,8 @@ proof -
     using abelian_monoid.finsum_zero \<open>abelian_monoid F\<close>
     by metis
 qed
+
+lemmas smult_closed = induced_vs_vs.smult_closed
 end
 
 subsection \<open>Subspaces of the Induced Vector Space\<close>
@@ -956,16 +1038,65 @@ lemma (in induced_subspace) orthogonal_subspace: "induced_subspace K orthogonal_
 proof -
   have "subspace K orthogonal_carrier VS" proof -
     have "submodule K orthogonal_carrier VS" proof -
+      note sp_def = field.scalar_prod_def[OF kn.field_F]
+
       have "module K VS"
         using vectorspace_def vs by blast
-      moreover have "\<And>v w.  v \<in> orthogonal_carrier \<Longrightarrow> w \<in> orthogonal_carrier \<Longrightarrow> v \<oplus>\<^bsub>VS\<^esub> w \<in> orthogonal_carrier"
-        sorry
       moreover have "W \<subseteq> V" using submod submodule_def[of K W VS] by simp
       then have "kn.zero_vec \<in> orthogonal_carrier" using zero_orthogonal
         using zero_vec_in_v by blast
       then have "\<zero>\<^bsub>VS\<^esub> \<in> orthogonal_carrier" by auto
+      moreover have "\<And>u v.  u \<in> orthogonal_carrier \<Longrightarrow> v \<in> orthogonal_carrier \<Longrightarrow> u \<oplus>\<^bsub>VS\<^esub> v \<in> orthogonal_carrier"
+      proof -
+        fix u v
+        assume assms: "u \<in> orthogonal_carrier" "v \<in> orthogonal_carrier"
+        then have "\<And>w. w \<in> W \<Longrightarrow> orthogonal (u \<oplus>\<^bsub>VS\<^esub> v) w"
+        proof -
+          fix w
+          assume "w \<in> W"
+          then have "w \<in> V" using \<open>W \<subseteq> V\<close> by blast
+          
+          have orth: "orthogonal u w" "orthogonal v w" using \<open>w \<in> W\<close> assms by auto
+
+          have "field.scalar_prod K (u \<oplus>\<^bsub>VS\<^esub> v) w = (field.scalar_prod K u w) \<oplus>\<^bsub>K\<^esub> field.scalar_prod K v w"
+            using sclar_prod_a_linear assms \<open>w \<in> V\<close> by blast
+          also have "\<dots> = \<zero>\<^bsub>K\<^esub> \<oplus>\<^bsub>K\<^esub> \<zero>\<^bsub>K\<^esub>" using orth orthogonal_def by simp
+          also have "\<dots> = \<zero>\<^bsub>K\<^esub>"
+            by (simp add: ring.ring_simprules(2,8) ring_F)
+          ultimately show "orthogonal (u \<oplus>\<^bsub>VS\<^esub> v) w"
+            using orthogonal_def
+            by presburger
+        qed
+        moreover have "u \<oplus>\<^bsub>VS\<^esub> v \<in> V" using assms
+          using addition_closed by auto
+        ultimately show "u \<oplus>\<^bsub>VS\<^esub> v \<in> orthogonal_carrier" by auto
+      qed
       moreover have "\<And>c v. c \<in> carrier K \<Longrightarrow> v \<in> orthogonal_carrier \<Longrightarrow>  c \<odot>\<^bsub>VS\<^esub> v \<in> orthogonal_carrier"
-        sorry
+      proof -
+        fix c v
+        assume assms: "c \<in> carrier K" "v \<in> orthogonal_carrier"
+        then have "\<And>w. w \<in> W \<Longrightarrow> orthogonal (c \<odot>\<^bsub>VS\<^esub> v) w"
+        proof -
+          fix w
+          assume "w \<in> W"
+          then have "w \<in> V" using \<open>W \<subseteq> V\<close> by blast
+          
+          have "orthogonal v w" using \<open>w \<in> W\<close> assms by auto
+
+          have "field.scalar_prod K (c \<odot>\<^bsub>VS\<^esub> v) w = c \<otimes>\<^bsub>K\<^esub> field.scalar_prod K v w"
+            using sclar_prod_s_linear assms \<open>w \<in> V\<close> by auto
+          also have "\<dots> = c \<otimes>\<^bsub>K\<^esub> \<zero>\<^bsub>K\<^esub>" using \<open>orthogonal v w\<close> orthogonal_def by simp
+          also have "\<dots> = \<zero>\<^bsub>K\<^esub>"
+            using assms
+            by (meson ring.ring_simprules(25) ring_F)
+          ultimately show "orthogonal (c \<odot>\<^bsub>VS\<^esub> v) w"
+            using orthogonal_def
+            by presburger
+        qed
+        moreover have "c \<odot>\<^bsub>VS\<^esub> v \<in> V" using assms kn.smult_closed by simp
+        ultimately show "c \<odot>\<^bsub>VS\<^esub> v \<in> orthogonal_carrier" by auto
+      qed
+        
       ultimately show ?thesis unfolding submodule_def by auto
     qed
     then show ?thesis unfolding subspace_def using vs by satx
