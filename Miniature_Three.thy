@@ -1,32 +1,55 @@
+chapter \<open>Miniature Three\<close>
+
 theory Miniature_Three
 imports Thirty_Three_Miniatures_Root
 
 begin
 
-text \<open>Auxiliary Definitions\<close> 
+text \<open>
+  Miniature 3 employs linear algebra techniques to show a result from extremal set theory,
+  namely the "Oddtown Theorem" which states that there are no more than n different clubs
+  in a city with n people if each club has an odd number of members and any two clubs intersect
+  in an even number of members.
+\<close>
 
-text \<open>Basic Definitions\<close>
+section \<open>Auxiliary Definitions\<close> 
+
+text \<open>
+  We define a club as an arbitrary set and a "club family" as a list of clubs.
+  We decided against defining a family as a set of clubs because defining a matrix based on
+  already ordered list entries is easier than defining a matrix based on elements of a set.
+\<close>
 
 type_synonym 'c club = "'c set"
-
 type_synonym 'c family = "'c set list"
 
+text \<open>
+  The cardinality rule constrains the number of members per club to odd numbers.
+  The intersection rule constrains the number of members per club intersection to even numbers.
+  Both rules combined define the preconditions of the Oddtown Theorem.
+\<close>
 fun card_rule :: "'c family \<Rightarrow> bool" where
   "card_rule \<F> = (\<forall>C \<in> set \<F>. (card C) mod 2 = 1)"
 
 fun intersect_rule :: "'c family \<Rightarrow> bool" where
   "intersect_rule \<F> = (\<forall>C \<in> set \<F>. \<forall>C' \<in> set \<F>. C \<noteq> C' \<longrightarrow> (card (C \<inter> C')) mod 2 = 0)"
 
-(* No two citizens are the same *)
+text \<open>
+  Like the club family, we define a village as a list of people, no two of which are identical.
+  Requiring distinctness is necessary s.t. the length of a list corresponds to the set cardinality
+  of the corresponding set of elements, which we are interested in in the Oddtown theorem.
+\<close>
 fun is_village :: "'c list \<Rightarrow> bool" where
-  "is_village X = (\<forall>i < length X. \<forall>j < length X. (i \<noteq> j \<longrightarrow> X!i \<noteq> X!j))"
+  "is_village X = distinct X"
 
-(* All clubs consist of citizens and no two clubs are the same *)
 fun is_club_fam :: "'c list \<Rightarrow> 'c family \<Rightarrow> bool" where
   "is_club_fam X \<F> = (\<forall>i < length \<F>. \<forall>j < length \<F>. \<F>!i \<subseteq> set X \<and> (i \<noteq> j \<longrightarrow> \<F>!i \<noteq> \<F>!j))"
 
 text \<open>Oddtown Theorem\<close>
 
+text \<open>
+
+\<close>
 lemma mod2_0_1_id:
   fixes 
     x :: nat

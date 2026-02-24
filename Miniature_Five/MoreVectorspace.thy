@@ -796,4 +796,37 @@ proof -
     by presburger
 qed 
 
+section \<open>Matrix Multiplication over Fields\<close>
+
+lemma (in field) matrix_mul_idx:
+  assumes
+    "\<And>i j . i < dim_row A \<Longrightarrow> j < dim_col A \<Longrightarrow> A $$ (i,j) \<in> carrier R"
+    "\<And>i. i < dim_col A \<Longrightarrow> v $ i \<in> carrier R"
+    "i \<in> {0..<dim_row A}"
+    "dim_vec v = dim_col A"
+  shows
+    "mult_mat_vec A v $ i = (\<Oplus>j \<in> {0..<dim_col A}. v $ j \<otimes> (col A j $ i))"
+proof -
+  have repl_eq: "\<And>j. j \<in> {0..<dim_col A} \<Longrightarrow> row A i $ j \<otimes> v $ j = v $ j \<otimes> col A j $ i"
+    unfolding row_def col_def using assms m_comm by simp
+
+  have repl_closed: "\<And>j. j \<in> {0..<dim_col A} \<Longrightarrow> v $ j \<otimes> col A j $ i \<in> carrier R"
+    unfolding col_def using m_closed assms by simp
+
+
+  have "mult_mat_vec A v $ i = vec (dim_row A) (\<lambda> i. row A i \<bullet> v) $ i"
+    unfolding mult_mat_vec_def by presburger
+  also have "\<dots> = (\<lambda> i. row A i \<bullet> v) i"
+    using assms by simp
+  also have "\<dots> = row A i \<bullet> v"
+    by presburger
+  ultimately have "mult_mat_vec A v $ i = (\<Oplus>j\<in>{0..<dim_col A}. row A i $ j \<otimes> v $ j)"
+    unfolding scalar_prod_def using assms by presburger
+  also have "\<dots> = (\<Oplus>j\<in>{0..<dim_col A}. v $ j \<otimes> col A j $ i)"
+    using finsum_cong'[OF _ _ repl_eq, of _ _ "\<lambda>i. i"]
+    using repl_eq repl_closed
+    by blast
+  finally show ?thesis .
+qed
+
 end

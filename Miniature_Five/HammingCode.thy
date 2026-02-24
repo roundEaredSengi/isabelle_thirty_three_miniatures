@@ -1,40 +1,9 @@
 theory HammingCode
-  imports GeneratingMatrix LinearCode CarriersetMatrix
+  imports GeneratingMatrix LinearCode CarriersetMatrix Jordan_Normal_Form.Matrix_Kernel
 begin
 
 hide_const (open) Matrix.scalar_prod
 hide_const (open) Matrix.mult_mat_vec
-
-lemma (in field) matrix_mul_idx:
-  assumes
-    "\<And>i j . i < dim_row A \<Longrightarrow> j < dim_col A \<Longrightarrow> A $$ (i,j) \<in> carrier R"
-    "\<And>i. i < dim_col A \<Longrightarrow> v $ i \<in> carrier R"
-    "i \<in> {0..<dim_row A}"
-    "dim_vec v = dim_col A"
-  shows
-    "mult_mat_vec A v $ i = (\<Oplus>j \<in> {0..<dim_col A}. v $ j \<otimes> (col A j $ i))"
-proof -
-  have repl_eq: "\<And>j. j \<in> {0..<dim_col A} \<Longrightarrow> row A i $ j \<otimes> v $ j = v $ j \<otimes> col A j $ i"
-    unfolding row_def col_def using assms m_comm by simp
-
-  have repl_closed: "\<And>j. j \<in> {0..<dim_col A} \<Longrightarrow> v $ j \<otimes> col A j $ i \<in> carrier R"
-    unfolding col_def using m_closed assms by simp
-
-
-  have "mult_mat_vec A v $ i = vec (dim_row A) (\<lambda> i. row A i \<bullet> v) $ i"
-    unfolding mult_mat_vec_def by presburger
-  also have "\<dots> = (\<lambda> i. row A i \<bullet> v) i"
-    using assms by simp
-  also have "\<dots> = row A i \<bullet> v"
-    by presburger
-  ultimately have "mult_mat_vec A v $ i = (\<Oplus>j\<in>{0..<dim_col A}. row A i $ j \<otimes> v $ j)"
-    unfolding scalar_prod_def using assms by presburger
-  also have "\<dots> = (\<Oplus>j\<in>{0..<dim_col A}. v $ j \<otimes> col A j $ i)"
-    using finsum_cong'[OF _ _ repl_eq, of _ _ "\<lambda>i. i"]
-    using repl_eq repl_closed
-    by blast
-  finally show ?thesis .
-qed
 
 abbreviation gf2_ring where
   "gf2_ring \<equiv> \<lparr> 
@@ -160,10 +129,9 @@ abbreviation hamming_parity_columns where
 abbreviation hamming_parity_matrix where
   "hamming_parity_matrix d \<equiv> mat_of_cols d (hamming_parity_columns d)"
 
-
-locale hamming_code = linear_code gf2_ring C "2^n - 1" for n C +
+locale hamming_code = lin?: linear_code gf2_ring C "2^n - 1" for n C +
   assumes
-    parity: "linear_code.parity_check_matrix gf2_ring C (2^n - 1) (hamming_parity_matrix n)"
+    parity: "lin.parity_check_matrix (hamming_parity_matrix n)"
 begin
 
 abbreviation "m \<equiv> 2^n - 1"
@@ -394,11 +362,31 @@ assume "\<not> minimum_distance \<ge> 3"
   then show False using v_props by linarith
 qed
 
-lemma "corrects_errors 1"
+theorem "corrects_errors 1"
   using min_dist min_distance_ec
   by presburger
 
 end
-  
 
+definition hamming_code_concrete :: "nat \<Rightarrow> gf2 vec set" where
+  "hamming_code_concrete n = mat_kernel (hamming_parity_matrix n)"
+
+text \<open>
+  To make sure that our locales are consistent, the next step would be to instantiate them:
+
+    interpretation simple_hamming: hamming_code n "hamming_code_concrete n" 
+
+  can be shown for all natural numbers \<^latex>\<open>n \geq 2\<close> and entails instantiations of linear_code
+  and all employed locales thereof.
+
+  For a very concrete instantiation, we can pick \<^latex>\<open>n = 2\<close> and show that the hamming code of
+  length 3 consists of the words 111 and 000 (forming a 1-dimensional linear subspace of 
+  \<^latex>\<open>\mathbb{F}_2^3\<close>) with paritiy check matrix
+  \<^latex>\<open>P := \begin{pmatrix} 1&0&1\\0&1&1 \end{pmatrix}\<close>.
+  Indeed, the orthogonal code here is \<^latex>\<open>\{000,011,101,110\}\<close>, a basis of which is given by
+  the rows of P.
+\<close>
+
+  
+  
 end
