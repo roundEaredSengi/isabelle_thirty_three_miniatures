@@ -3,6 +3,10 @@ theory MoreVectorspace
 
 begin
 
+section \<open>Additional Lemmas about Vector Spaces\<close>
+
+subsection \<open>Existence of a Subspace Basis\<close>
+
 lemma (in subspace) lin_indpt_sub_imp_lin_indpt_parent:
   fixes X :: "'c set"
   assumes "X \<subseteq> W" and "module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) X"
@@ -475,6 +479,8 @@ proof -
     by metis
 qed
 
+subsection \<open>Dimension of a Linear Subspace\<close>
+
 lemma (in subspace) fin_sub_dim:
   assumes "vectorspace.fin_dim K V"
   shows "vectorspace.fin_dim K (V\<lparr>carrier:=W\<rparr>)"
@@ -518,6 +524,8 @@ lemma (in subspace) dim_eq_imp_space_eq:
     "vectorspace.dim K (V\<lparr>carrier:=W\<rparr>) = vectorspace.dim K V"
   shows "carrier V = W"
   sorry
+
+subsection \<open>The Trivial Subspace\<close>
 
 lemma (in vectorspace) trivial_space:
   "subspace K {\<zero>\<^bsub>V\<^esub>} V"
