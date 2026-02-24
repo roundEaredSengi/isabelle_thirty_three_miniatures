@@ -27,8 +27,15 @@ text \<open>
 
     1) Theory "Code" introduces general terminology about codes over arbitrary finite alphabets,
          such as the definition of Hamming distances and error-correcting codes.
+
+         The main lemma of this theory is that a code can correct t errors, iff the minimum
+         hamming distance is >= 2t + 1.
     2) Theory "LinearCode" defines linear codes, i.e., codes that form a linear subspace 
-        of a vector space.
+        of the (induced, see below) vector space of all words \<^latex>\<open>$\mathbb{K}^n$\<close>.
+
+        The main lemma of this theory is, that for the minimum distance of a linear code,
+        it suffices to take the minimum of the hamming_distances from the 0-vector (this
+        is sometimes called the hamming weight).
     3) Theory "GeneratingMatrix" introduces the generating and parity check matrix of linear codes.
     4) Theory "HammingCode" defines the generalized Hamming code via its parity check matrix
         and shows that it is 1-bit-error-correcting.
@@ -39,9 +46,10 @@ text \<open>
 
     5) Theory "InducedVectorspace" defines vector spaces of the form \<^latex>\<open>$\mathbb{K}^n$\<close> 
         for fields K. 
-    6) Theory "CarrierSetMatrix" transfers results about matrix-vector-multiplication from the
-        type-based definition of algebraic structures as prominent in HOL to the carrier-set-based
-        definitions that are prominent in the AFP and which we built upon.
+    6) Theory "CarrierSetMatrix" redefines matrix-vector-multiplication and the scalar product,
+        as the definitions available in the AFP require the element type of the base field to 
+        be of the `semiring_0` typeclass, which we do not require.
+        It then proves some results about these new definitions.
     7) Theory "MoreVectorspace" shows additional claims about vector spaces that we need throughout
         our formalization.
 \<close>

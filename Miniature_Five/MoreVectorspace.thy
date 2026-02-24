@@ -19,7 +19,7 @@ text \<open>
         find a larger linearly independent subset according to 3), contradicting maximality.
 
   There is a basis existence theorem "finite_basis_exists" in the AFP entry VectorSpace,
-  however, this is only shown for vector spaces that are already known to be finite-dimensional.
+  however, this is only shown for subspaces that are already known to be finite-dimensional.
 \<close>
 
 lemma (in subspace) lincomb_sub_is_lincomb_parent:
