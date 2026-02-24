@@ -1,10 +1,12 @@
+chapter \<open>Miniature 2\<close>
+
 theory Miniature_Two
-  imports More_Finsum
+  imports Util
 
 begin
 
 text \<open>
-  This is a special case of the more general strategy to solve recurrences by
+  Miniature 2 treats a special case of the more general strategy to solve recurrences by
 
     1) viewing sequences that satisfy the recurrence as a vector space
     2) finding a simple basis of that vector space 
@@ -16,8 +18,9 @@ text \<open>
   formula (induction should do the trick). Rather, it aids in finding an explicit formula in the
   first place.
 
-  We directly apply this strategy to the Fibonacci recurrence following <TODO: citation>,
-  but generalizing the proof strategy for reuse would be a sensible next step.
+  Following Miniature 2, we apply this strategy to the Fibonacci recurrence.
+  The generalized proof strategy has already been formalized in 
+  \<^url>\<open>https://www.isa-afp.org/entries/Linear_Recurrences.html\<close>.
 \<close>
 
 subsection \<open>Basic Definitions\<close>
@@ -312,7 +315,7 @@ qed
 
 text \<open>
   An arbitrary Fibonacci sequence f can be written as 
-  \<^latex>\<open>f(0) \cdot seq_{10} + f(1) \cdot seq_{01}\<close>.
+  \<^latex>\<open>$f(0) \cdot seq_{10} + f(1) \cdot seq_{01}$\<close>.
 \<close>
 lemma seq_01_10_is_gen_set:
   fixes
@@ -564,9 +567,9 @@ subsection \<open>Basis using Roots of the Characteristic Polynomial\<close>
 
 text \<open>
   The roots of the characteristic polynomial of the Fibonacci recurrence are
-  \<^latex>\<open>\frac{1 \pm \sqrt{5}}{2}\<close>. Those are linearly independent and thus form a basis of the
+  \<^latex>\<open>$\frac{1 \pm \sqrt{5}}{2}$\<close>. Those are linearly independent and thus form a basis of the
   Fibonacci sequence space. The benefit of choosing these sequences is that it is easy to solve 
-  them explicitly: The nth element is just ^latex>\<open>(\frac{1 \pm \sqrt{5}}{2})^n\<close>. 
+  them explicitly: The nth element is just \<^latex>\<open>$(\frac{1 \pm \sqrt{5}}{2})^n$\<close>. 
   Thus, expressing any other Fibonacci sequence as a linear combination of this alternative basis
   immediately yields an explicit formula for its elements.
 \<close>
@@ -625,7 +628,7 @@ next
 qed
 
 lemma tau_is_fib_sequence:
-  shows (* Without the "shows", referencing the lemma only references the first goal? *)
+  shows
     "\<tau>1 \<in> fib_sequences" and
     "\<tau>2 \<in> fib_sequences"
 proof (unfold fib_sequences_def, simp_all, safe)
@@ -760,7 +763,7 @@ proof -
     by simp
 qed
 
-section \<open>Coordinates of the Fibonacci Sequence\<close>
+section \<open>Coordinates and Explicit Formula of the Fibonacci Sequence\<close>
 
 lemma fib_is_fib_sequence: "fibonacci \<in> fib_sequences"
   unfolding fib_sequences_def fib_prop.simps
