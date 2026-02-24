@@ -22,6 +22,111 @@ text \<open>
   however, this is only shown for vector spaces that are already known to be finite-dimensional.
 \<close>
 
+lemma (in subspace) lincomb_sub_is_lincomb_parent:
+  fixes A :: "'c set" and a :: "'c \<Rightarrow> 'a"
+  assumes "A \<subseteq> W" and "finite A" and "a \<in> A \<rightarrow> carrier K"
+  shows "(\<Oplus>\<^bsub>module.md V W\<^esub>v\<in>A. a v \<odot> v) = (\<Oplus>v\<in>A. a v \<odot> v)"
+  using assms
+proof (induction "card A" arbitrary: A a)
+  case 0
+  interpret mod: module K V
+    using subspace_axioms unfolding subspace_def vectorspace_def
+    by satx
+  interpret s_mod: module K "V\<lparr>carrier:=W\<rparr>"
+    using submod
+    by (rule mod.submodule_is_module)
+  from 0 have "A = {}"
+    by simp
+  hence "(\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A. a v \<odot> v) = \<zero>\<^bsub>V\<^esub>"
+    using 0
+    by simp
+  moreover have "(\<Oplus>v\<in>A. a v \<odot> v) = \<zero>\<^bsub>V\<^esub>"
+    using 0
+    by simp
+  ultimately show ?case 
+    by simp
+next
+  case (Suc x)
+  interpret mod: module K V
+    using subspace_axioms unfolding subspace_def vectorspace_def
+    by satx
+  interpret s_mod: module K "V\<lparr>carrier:=W\<rparr>"
+    using submod
+    by (rule mod.submodule_is_module)
+  have "A \<subseteq> carrier V"
+    using Suc submod
+    unfolding submodule_def
+    by auto
+  from Suc have a_clsd: "\<forall>v \<in> A. a v \<in> carrier K"
+    by auto
+  hence closed_V: "\<forall>v \<in> A. a v \<odot> v \<in> carrier V"
+    using mod.module_axioms \<open>A \<subseteq> carrier V\<close>
+    unfolding module_def module_axioms_def
+    by auto
+  have "A \<subseteq> carrier (mod.md W)"
+    using Suc
+    by simp
+  hence closed_W: "\<forall>v \<in> A. a v \<odot> v \<in> carrier (mod.md W)"
+    using a_clsd s_mod.module_axioms
+    unfolding module_def module_axioms_def
+    by auto 
+  from Suc have "card A > 0"
+    by presburger
+  hence "A \<noteq> {}"
+    by auto
+  then obtain b :: 'c where "b \<in> A"
+    by auto
+  hence "x = card (A - {b})"
+    using Suc
+    by simp
+  moreover have "finite (A - {b})"
+    using \<open>b \<in> A\<close> Suc
+    by simp
+  moreover have "a \<in> A - {b} \<rightarrow> carrier K"
+    using Suc
+    unfolding Pi_def
+    by simp
+  ultimately have IH: "(\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A-{b}. a v \<odot> v) = (\<Oplus>v\<in>A-{b}. a v \<odot> v)"
+    using Suc
+    by blast
+  have fin_b: "finite (A - {b})"
+    using Suc
+    by simp
+  moreover have no_elt: "b \<notin> A - {b}"
+    by simp
+  moreover have "(\<lambda>v. a v \<odot> v) \<in> A - {b} \<rightarrow> carrier (mod.md W)"
+    using closed_W
+    by simp
+  moreover have "a b \<odot> b \<in> carrier (mod.md W)"
+    using \<open>b \<in> A\<close> closed_W
+    by metis
+  moreover have eq_insert: "insert b (A - {b}) = A"
+    using \<open>b \<in> A\<close>
+    by auto
+  ultimately have sub_mod_sum:
+    "(\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A. a v \<odot> v) = (a b \<odot> b) \<oplus>\<^bsub>mod.md W\<^esub> (\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A-{b}. a v \<odot> v)"
+    using \<open>b \<in> A\<close> Suc s_mod.finsum_insert[of "A - {b}" b "\<lambda>v. a v \<odot> v"]
+    by metis
+  have "(\<lambda>v. a v \<odot> v) \<in> A - {b} \<rightarrow> carrier V"
+    using closed_V
+    by simp
+  moreover have "a b \<odot> b \<in> carrier V"
+    using \<open>b \<in> A\<close> closed_V
+    by metis
+  ultimately have mod_sum: "(\<Oplus>v\<in>A. a v \<odot> v) = (a b \<odot> b) \<oplus>\<^bsub>V\<^esub> (\<Oplus>v\<in>A-{b}. a v \<odot> v)"
+    using \<open>b \<in> A\<close> Suc mod.finsum_insert[of "A - {b}" b "\<lambda>v. a v \<odot> v", OF fin_b no_elt] eq_insert
+    by metis
+  also have "... = (a b \<odot> b) \<oplus>\<^bsub>V\<^esub> (\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A-{b}. a v \<odot> v)"
+    using IH
+    by metis
+  also have "... = (a b \<odot> b) \<oplus>\<^bsub>mod.md W\<^esub> (\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A-{b}. a v \<odot> v)"
+    by simp
+  also have "... = (\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A. a v \<odot> v)"
+    using sub_mod_sum
+    by simp
+  finally show ?case by simp
+qed
+
 lemma (in subspace) lin_indpt_sub_imp_lin_indpt_parent:
   fixes X :: "'c set"
   assumes "X \<subseteq> W" and "module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) X"
@@ -56,90 +161,8 @@ proof (rule ccontr, simp)
   also from eq_map have "(\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A. a v \<odot>\<^bsub>mod.md W\<^esub> v) = (\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A. a v \<odot> v)"
     by metis
   also have "... = (\<Oplus>v\<in>A. a v \<odot> v)"
-    using fin sub pi \<open>A \<subseteq> carrier V\<close>
-  proof (induction "card A" arbitrary: A)
-    case 0
-    hence "(\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A. a v \<odot> v) = \<zero>\<^bsub>V\<^esub>"
-      by simp 
-    moreover have "(\<Oplus>v\<in>A. a v \<odot> v) = \<zero>\<^bsub>V\<^esub>"
-      using 0
-      by simp
-    ultimately show ?case 
-      by simp
-  next
-    case (Suc x)
-    hence a_clsd: "\<forall>v \<in> A. a v \<in> carrier K"
-      by auto
-    hence closed_V: "\<forall>v \<in> A. a v \<odot> v \<in> carrier V"
-      using mod.module_axioms \<open>A \<subseteq> carrier V\<close>
-      unfolding module_def module_axioms_def
-      by auto
-    have "A \<subseteq> carrier (mod.md W)"
-      using \<open>A \<subseteq> X\<close> \<open>X \<subseteq> W\<close>
-      by simp
-    hence closed_W: "\<forall>v \<in> A. a v \<odot> v \<in> carrier (mod.md W)"
-      using a_clsd sub_mod.module_axioms
-      unfolding module_def module_axioms_def
-      by auto 
-    from Suc have "card A > 0"
-      by presburger
-    hence "A \<noteq> {}"
-      by auto
-    then obtain b :: 'c where "b \<in> A"
-      by auto
-    hence "x = card (A - {b})"
-      using Suc
-      by simp
-    moreover have "finite (A - {b})"
-      using \<open>b \<in> A\<close> Suc
-      by simp
-    moreover have "A - {b} \<subseteq> X"
-      using Suc
-      by auto
-    moreover have "a \<in> A - {b} \<rightarrow> carrier K"
-      using Suc
-      unfolding Pi_def
-      by simp
-    ultimately have IH: "(\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A-{b}. a v \<odot> v) = (\<Oplus>v\<in>A-{b}. a v \<odot> v)"
-      using Suc
-      by blast
-    have fin_b: "finite (A - {b})"
-      using Suc
-      by simp
-    moreover have no_elt: "b \<notin> A - {b}"
-      by simp
-    moreover have "(\<lambda>v. a v \<odot> v) \<in> A - {b} \<rightarrow> carrier (mod.md W)"
-      using closed_W
-      by simp
-    moreover have "a b \<odot> b \<in> carrier (mod.md W)"
-      using \<open>b \<in> A\<close> closed_W
-      by metis
-    moreover have eq_insert: "insert b (A - {b}) = A"
-      using \<open>b \<in> A\<close>
-      by auto
-    ultimately have sub_mod_sum:
-      "(\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A. a v \<odot> v) = (a b \<odot> b) \<oplus>\<^bsub>mod.md W\<^esub> (\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A-{b}. a v \<odot> v)"
-      using \<open>b \<in> A\<close> Suc sub_mod.finsum_insert[of "A - {b}" b "\<lambda>v. a v \<odot> v"]
-      by metis
-    have "(\<lambda>v. a v \<odot> v) \<in> A - {b} \<rightarrow> carrier V"
-      using closed_V
-      by simp
-    moreover have "a b \<odot> b \<in> carrier V"
-      using \<open>b \<in> A\<close> closed_V
-      by metis
-    ultimately have mod_sum: "(\<Oplus>v\<in>A. a v \<odot> v) = (a b \<odot> b) \<oplus>\<^bsub>V\<^esub> (\<Oplus>v\<in>A-{b}. a v \<odot> v)"
-      using \<open>b \<in> A\<close> Suc mod.finsum_insert[of "A - {b}" b "\<lambda>v. a v \<odot> v", OF fin_b no_elt] eq_insert
-      by metis
-    also have "... = (a b \<odot> b) \<oplus>\<^bsub>V\<^esub> (\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A-{b}. a v \<odot> v)"
-      using IH
-      by metis
-    also have "... = (a b \<odot> b) \<oplus>\<^bsub>mod.md W\<^esub> (\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A-{b}. a v \<odot> v)"
-      by simp
-    also have "... = (\<Oplus>\<^bsub>mod.md W\<^esub>v\<in>A. a v \<odot> v)"
-      using sub_mod_sum
-      by simp
-    finally show ?case by simp
-  qed
+    using fin sub pi \<open>A \<subseteq> X\<close> \<open>X \<subseteq> W\<close> lincomb_sub_is_lincomb_parent[of A a]
+    by simp
   also have "... = mod.lincomb a A"
     unfolding mod.lincomb_def
     by simp
@@ -256,11 +279,11 @@ proof -
   moreover have "X \<subseteq> module.span K (V\<lparr>carrier:=W\<rparr>) X"
     using assms module.span_subset[of K "V\<lparr>carrier:=W\<rparr>" X, OF mod]
     unfolding P_def
-    by blast
+    by simp
   ultimately have "w \<notin> X"
     by auto
 
-  have "module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) (X \<union> {w})"
+  have "module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) (X \<union> {w})" (* TODO use lin_dep_iff_in_span *)
   proof (safe)
     assume ldep: "module.lin_dep K (V\<lparr>carrier := W\<rparr>) (X \<union> {w})"
     have "X \<subseteq> W"
@@ -504,7 +527,7 @@ lemma (in subspace) subspace_has_basis:
   assumes "vectorspace.fin_dim K V"
   defines 
     "P \<equiv> (\<lambda>B. finite B \<and> B \<subseteq> W \<and> module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) B)"
-  shows "\<exists>B. vectorspace.basis K (V\<lparr>carrier:=W\<rparr>) B"
+  shows "\<exists>B. vectorspace.basis K (V\<lparr>carrier:=W\<rparr>) B \<and> finite B"
 proof -
   have "\<exists>B. finite B \<and> maximal B P"
     using max_lin_indpt_subset assms
@@ -535,7 +558,8 @@ proof -
   moreover have "vectorspace K (V\<lparr>carrier := W\<rparr>)"
     by (metis vs subspace_axioms vectorspace.subspace_is_vs)
   ultimately show ?thesis
-    using vectorspace.basis_def[of K "V\<lparr>carrier := W\<rparr>" B]
+    using vectorspace.basis_def[of K "V\<lparr>carrier := W\<rparr>" B] \<open>P B\<close>
+    unfolding P_def
     by metis
 qed
 
@@ -550,7 +574,9 @@ proof -
     module.submodule_is_module[OF submodule.module[OF submod] 
     vectorspace.is_module[OF vs subspace_axioms]]
 
-  have "\<exists>B. vectorspace.basis K (V\<lparr>carrier:=W\<rparr>) B" by (rule subspace_has_basis[OF assms])
+  have "\<exists>B. vectorspace.basis K (V\<lparr>carrier:=W\<rparr>) B" 
+    using subspace_has_basis[OF assms]
+    by metis
   then obtain B where "vectorspace.basis K (V\<lparr>carrier:=W\<rparr>) B"
     by presburger
   then have basis:
@@ -575,16 +601,133 @@ qed
 lemma (in subspace) dim_le: 
   assumes "vectorspace.fin_dim K V"
   shows "vectorspace.dim K (V\<lparr>carrier:=W\<rparr>) \<le> vectorspace.dim K V" 
-  using vectorspace.dim_li_is_basis
-  sorry
+proof (rule ccontr)
+  assume "\<not> vectorspace.dim K (V\<lparr>carrier := W\<rparr>) \<le> vectorspace.dim K V"
+  hence greater: "vectorspace.dim K (V\<lparr>carrier := W\<rparr>) > vectorspace.dim K V"
+    by presburger
+  interpret vec_s: vectorspace K V
+    using vs
+    by satx
+  interpret sub_vs: vectorspace K "V\<lparr>carrier := W\<rparr>"
+    using vectorspace.subspace_is_vs[of K V W, OF vs subspace_axioms]
+    by satx
+  from subspace_has_basis obtain B :: "'c set" where
+    basis: "vectorspace.basis K (V\<lparr>carrier := W\<rparr>) B" and "finite B"
+    using assms by blast
+  hence "vectorspace.dim K (V\<lparr>carrier := W\<rparr>) = card B"
+    using sub_vs.dim_basis[of B]
+    by satx
+  hence g: "card B > vectorspace.dim K V"
+    using greater
+    by simp
+  have "vec_s.lin_indpt B"
+    using lin_indpt_sub_imp_lin_indpt_parent[of B] basis
+    unfolding sub_vs.basis_def
+    by simp
+  moreover have "B \<subseteq> carrier V"
+    using basis submod
+    unfolding submodule_def sub_vs.basis_def
+    by auto 
+  ultimately have le: "card B \<le> vec_s.dim"
+    using vec_s.li_le_dim(2)[of B] assms
+    by satx
+  thus False
+    using g
+    by presburger
+qed
 
 lemma (in subspace) dim_eq_imp_space_eq: 
   assumes 
     "vectorspace.fin_dim K V" and 
     "vectorspace.dim K (V\<lparr>carrier:=W\<rparr>) = vectorspace.dim K V"
   shows "carrier V = W"
-  sorry
-
+proof -
+  interpret vec_s: vectorspace K V
+    using vs
+    by satx
+  interpret sub_vs: vectorspace K "V\<lparr>carrier := W\<rparr>"
+    using vectorspace.subspace_is_vs[of K V W, OF vs subspace_axioms]
+    by satx
+  from subspace_has_basis obtain B :: "'c set" where
+    basis: "vectorspace.basis K (V\<lparr>carrier := W\<rparr>) B" and "finite B"
+    using assms by blast
+  hence "B \<subseteq> W"
+    unfolding sub_vs.basis_def
+    by simp
+  from basis \<open>finite B\<close> have "vectorspace.dim K (V\<lparr>carrier := W\<rparr>) = card B"
+    using sub_vs.dim_basis[of B]
+    by satx
+  hence eq: "vec_s.dim = card B"
+    using assms
+    by simp
+  moreover have "vec_s.lin_indpt B"
+    using lin_indpt_sub_imp_lin_indpt_parent[of B] basis
+    unfolding sub_vs.basis_def
+    by simp
+ moreover have "B \<subseteq> carrier V"
+    using basis submod
+    unfolding submodule_def sub_vs.basis_def
+    by auto 
+  ultimately have "vec_s.basis B"
+    using vec_s.dim_li_is_basis[of B] \<open>finite B\<close> assms
+    by linarith
+  hence "vec_s.span B = carrier V"
+    unfolding vec_s.basis_def 
+    by simp
+  moreover have "vec_s.span B = sub_vs.span B"
+  proof (safe)
+    fix x :: 'c 
+    assume "x \<in> vec_s.span B"
+    then obtain A :: "'c set" and a :: "'c \<Rightarrow> 'a" and v :: 'c where
+      fin: "finite A" and sub: "A \<subseteq> B" and pi: "a \<in> A \<rightarrow> carrier K" and
+      lcomb: "x = vec_s.lincomb a A"
+      unfolding vec_s.span_def
+      by auto
+    have "(\<Oplus>\<^bsub>vec_s.vs W\<^esub>v\<in>A. a v \<odot>\<^bsub>vec_s.vs W\<^esub> v) = (\<Oplus>\<^bsub>vec_s.vs W\<^esub>v\<in>A. a v \<odot> v)"
+      by simp
+    moreover have "(\<Oplus>v\<in>A. a v \<odot> v) = (\<Oplus>\<^bsub>vec_s.vs W\<^esub>v\<in>A. a v \<odot> v)"
+      using lincomb_sub_is_lincomb_parent[of A a, OF _ fin pi] \<open>B \<subseteq> W\<close> sub
+      by simp
+    ultimately have "(\<Oplus>v\<in>A. a v \<odot> v) = (\<Oplus>\<^bsub>vec_s.vs W\<^esub>v\<in>A. a v \<odot>\<^bsub>vec_s.vs W\<^esub> v)"
+      by simp
+    hence "x = sub_vs.lincomb a A" 
+      using lcomb sub_vs.lincomb_def[of a A] vec_s.lincomb_def[of a A]
+      by metis
+    thus "x \<in> sub_vs.span B"
+      using fin sub pi
+      unfolding sub_vs.span_def
+      by auto
+  next
+    fix x :: 'c
+    assume "x \<in> sub_vs.span B"
+    then obtain A :: "'c set" and a :: "'c \<Rightarrow> 'a" and v :: 'c where
+      fin: "finite A" and sub: "A \<subseteq> B" and pi: "a \<in> A \<rightarrow> carrier K" and
+      lcomb: "x = sub_vs.lincomb a A"
+      unfolding sub_vs.span_def
+      by auto
+    have "(\<Oplus>\<^bsub>vec_s.vs W\<^esub>v\<in>A. a v \<odot>\<^bsub>vec_s.vs W\<^esub> v) = (\<Oplus>\<^bsub>vec_s.vs W\<^esub>v\<in>A. a v \<odot> v)"
+      by simp
+    moreover have "(\<Oplus>v\<in>A. a v \<odot> v) = (\<Oplus>\<^bsub>vec_s.vs W\<^esub>v\<in>A. a v \<odot> v)"
+      using lincomb_sub_is_lincomb_parent[of A a, OF _ fin pi] \<open>B \<subseteq> W\<close> sub
+      by simp
+    ultimately have "(\<Oplus>v\<in>A. a v \<odot> v) = (\<Oplus>\<^bsub>vec_s.vs W\<^esub>v\<in>A. a v \<odot>\<^bsub>vec_s.vs W\<^esub> v)"
+      by simp
+    hence "x = vec_s.lincomb a A" 
+      using lcomb sub_vs.lincomb_def[of a A] vec_s.lincomb_def[of a A]
+      by metis
+    thus "x \<in> vec_s.span B"
+      using fin sub pi
+      unfolding vec_s.span_def
+      by auto
+  qed
+  moreover have "sub_vs.span B = W"
+    using basis
+    unfolding sub_vs.basis_def
+    by simp
+  ultimately show ?thesis
+    by simp
+qed
+  
 subsection \<open>The Trivial Subspace\<close>
 
 lemma (in vectorspace) trivial_space:
