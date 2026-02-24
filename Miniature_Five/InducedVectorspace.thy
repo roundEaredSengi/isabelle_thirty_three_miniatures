@@ -356,46 +356,7 @@ qed
 interpretation induced_vs_vs: vectorspace F VS
   by (rule vectorspace_VS)
 
-subsection \<open>Standard Basis and Dimension of the Induced Vector Space\<close>
-
-definition standard_basis_vec :: "nat \<Rightarrow> 'a vec" where
-  "standard_basis_vec i = vec n (\<lambda>k. if k = i then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>)"
-
-definition standard_basis_n :: "'a vec set" where
-  "standard_basis_n = standard_basis_vec ` {0..<n}"
-
-lemma inj_standard_basis: "inj_on standard_basis_vec {0..<n}"
-proof (unfold inj_on_def, safe)
-  fix i :: nat and j :: nat
-  assume "i \<in> {0..<n}" and "j \<in> {0..<n}" and "standard_basis_vec i = standard_basis_vec j"
-  hence "standard_basis_vec i $ j = \<one>\<^bsub>F\<^esub>"
-    unfolding standard_basis_vec_def
-    by simp
-  moreover have "i \<noteq> j \<Longrightarrow> standard_basis_vec i $ j = \<zero>\<^bsub>F\<^esub>"
-    unfolding standard_basis_vec_def
-    using \<open>i \<in> {0..<n}\<close> \<open>j \<in> {0..<n}\<close>
-    by simp
-  ultimately show "i = j"
-    by auto
-qed
-
-lemma standard_vec_in_v:
-  assumes
-    "i \<in> {0..<n}"
-  shows
-    "standard_basis_vec i \<in> V"
-proof (unfold standard_basis_vec_def, simp, safe)
-  fix x
-  assume "x \<in> set\<^sub>v (vec n (\<lambda>k. if k = i then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>))"
-  then obtain j where "j \<in> {0..<n}" "x = (vec n (\<lambda>k. if k = i then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>)) $ j"
-    unfolding vec_set_def
-    by fastforce
-  moreover have "\<one>\<^bsub>F\<^esub> \<in> E" "\<zero>\<^bsub>F\<^esub> \<in> E" by simp_all
-  ultimately show "x \<in> E" using vec_set_def by simp
-qed
-
-lemma standard_basis_in_v: "standard_basis_n \<subseteq> V"
-  using standard_vec_in_v standard_basis_n_def by fastforce
+subsection \<open>Coordinates in the Induced Vector Space are Linear\<close>
 
 lemma lincomb_coords:
   fixes i :: nat and a :: "'a vec \<Rightarrow> 'a" and X :: "'a vec set"
@@ -459,6 +420,76 @@ next
     using \<open>v \<in> X\<close> insert_Diff by force
 qed
 
+subsection \<open>Standard Basis and Dimension of the Induced Vector Space\<close>
+
+definition standard_basis_vec :: "nat \<Rightarrow> 'a vec" where
+  "standard_basis_vec i = vec n (\<lambda>k. if k = i then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>)"
+
+definition standard_basis_n :: "'a vec set" where
+  "standard_basis_n = standard_basis_vec ` {0..<n}"
+
+lemma inj_standard_basis: "inj_on standard_basis_vec {0..<n}"
+proof (unfold inj_on_def, safe)
+  fix i :: nat and j :: nat
+  assume "i \<in> {0..<n}" and "j \<in> {0..<n}" and "standard_basis_vec i = standard_basis_vec j"
+  hence "standard_basis_vec i $ j = \<one>\<^bsub>F\<^esub>"
+    unfolding standard_basis_vec_def
+    by simp
+  moreover have "i \<noteq> j \<Longrightarrow> standard_basis_vec i $ j = \<zero>\<^bsub>F\<^esub>"
+    unfolding standard_basis_vec_def
+    using \<open>i \<in> {0..<n}\<close> \<open>j \<in> {0..<n}\<close>
+    by simp
+  ultimately show "i = j"
+    by auto
+qed
+
+lemma standard_vec_in_v:
+  assumes
+    "i \<in> {0..<n}"
+  shows
+    "standard_basis_vec i \<in> V"
+proof (unfold standard_basis_vec_def, simp, safe)
+  fix x
+  assume "x \<in> set\<^sub>v (vec n (\<lambda>k. if k = i then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>))"
+  then obtain j where "j \<in> {0..<n}" "x = (vec n (\<lambda>k. if k = i then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>)) $ j"
+    unfolding vec_set_def
+    by fastforce
+  moreover have "\<one>\<^bsub>F\<^esub> \<in> E" "\<zero>\<^bsub>F\<^esub> \<in> E" by simp_all
+  ultimately show "x \<in> E" using vec_set_def by simp
+qed
+
+lemma standard_basis_in_v: "standard_basis_n \<subseteq> V"
+  using standard_vec_in_v standard_basis_n_def by fastforce
+
+subsubsection \<open>Linear Combnations and Standard Scalar Product of Standard Basis Vectors\<close>
+
+lemma standard_basis_mul_equiv:
+  fixes j :: nat and i :: nat and a :: "'a vec \<Rightarrow> 'a"
+  assumes "j \<in> {0..<n}" and "i \<in> {0..<n}" and "a \<in> standard_basis_n \<rightarrow> carrier F"
+  shows 
+    "(a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i = 
+      (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i"
+proof -
+  have "(a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i = (a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> (standard_basis_vec j $ i))"
+    unfolding scaling_def
+    using assms
+    by simp
+  also have "\<dots> = (a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> (if i = j then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>))"
+    unfolding standard_basis_vec_def
+    using assms
+    by simp
+  also have "\<dots> = (if i = j then a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> \<one>\<^bsub>F\<^esub> else a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>)"
+    by presburger
+  also have "\<dots> = (if i = j then a (standard_basis_vec j) else a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>)"
+    using assms           
+    by (metis PiE assms(2) atLeast0LessThan imageI induced_vs_vs.r_one standard_basis_n_def)
+  also have "\<dots> = (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)"
+    using assms
+    by (metis standard_basis_n_def PiE imageI induced_vs_vs.integral_iff lessThan_atLeast0 induced_vs_vs.R.zero_closed)
+  finally show "(a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i =  (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i"
+    by presburger
+qed
+
 lemma finsum_standard_basis_entries:
   fixes i :: nat and a :: "'a vec \<Rightarrow> 'a" and X :: "'a vec set"
   assumes 
@@ -470,6 +501,7 @@ proof -
   have sbv_inj: "inj_on standard_basis_vec {..<n}"
     using inj_standard_basis \<open>{0..<n} = {..<n}\<close> by metis
 
+  (* TODO move to separate lemma *)
   have func: "(\<lambda>b. (a b \<odot>\<^bsub>VS\<^esub> b) $ i) \<in> standard_basis_vec ` {..<n} \<rightarrow> E" proof
     fix x
     assume "x \<in> standard_basis_vec ` {..<n}"
@@ -496,28 +528,11 @@ proof -
   note sum_zero = abelian_monoid.finsum_zero[OF induced_vs_vs.module.R.abelian_monoid_axioms]
   note r_zero = abelian_monoid.r_zero[OF induced_vs_vs.module.R.abelian_monoid_axioms]
 
-  have mul_equiv: "\<And>j. j \<in> {..<n} \<Longrightarrow> (a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i =  (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i"
-  proof -
-    fix j
-    assume j: "j \<in> {..<n}"
-    have "(a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i = (a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> (standard_basis_vec j $ i))"
-      unfolding scaling_def
-      using assms
-      by simp
-    also have "\<dots> = (a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> (if i = j then \<one>\<^bsub>F\<^esub> else \<zero>\<^bsub>F\<^esub>))"
-      unfolding standard_basis_vec_def
-      using assms
-      by simp
-    also have "\<dots> = (if i = j then a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> \<one>\<^bsub>F\<^esub> else a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>)"
-      by presburger
-    also have "\<dots> = (if i = j then a (standard_basis_vec j) else a (standard_basis_vec j) \<otimes>\<^bsub>F\<^esub> \<zero>\<^bsub>F\<^esub>)"
-      by (metis PiE assms(2) atLeast0LessThan imageI induced_vs_vs.r_one j
-          standard_basis_n_def)
-    also have "\<dots> = (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)"
-      by (metis j standard_basis_n_def assms(2) PiE imageI induced_vs_vs.integral_iff lessThan_atLeast0 induced_vs_vs.R.zero_closed)
-    finally show "(a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i =  (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i"
-      by presburger
-  qed
+  have mul_equiv: "\<And>j. j \<in> {..<n} \<Longrightarrow> 
+    (a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i = 
+      (\<lambda>i. (if i = j then a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)) i"
+    using standard_basis_mul_equiv[of _ i a] assms
+    by simp
   have idfk: "(\<lambda>ia. if i = ia then a (standard_basis_vec ia) else \<zero>\<^bsub>F\<^esub>) \<in> {..<n} \<rightarrow> E"
   proof
     fix x
@@ -559,6 +574,148 @@ proof -
   ultimately show ?thesis
     by presburger
 qed
+
+lemma standard_scalar_prod:
+  fixes i :: nat and v :: "'a vec"
+  assumes "i < n" and "v \<in> V"
+  shows "field.scalar_prod F (standard_basis_vec i) v = v $ i"
+proof -
+  let ?a = "\<lambda>b. if (b = standard_basis_vec i) then v $ i else \<zero>\<^bsub>F\<^esub>"
+  have fin: "finite standard_basis_n"
+    unfolding standard_basis_n_def
+    by simp
+  have "\<forall>x. ?a x \<in> {v $ i, \<zero>\<^bsub>F\<^esub>}"
+    by simp
+  moreover have "v $ i \<in> E"
+    using assms
+    by simp
+  moreover have "\<zero>\<^bsub>F\<^esub> \<in> E"
+    using induced_vs_axioms ring.ring_simprules(2) ring_F
+    unfolding induced_vs_def
+    by blast
+  ultimately have "\<forall>v. ?a v \<in> E"
+    by metis  
+  hence pi: "?a \<in> standard_basis_n \<rightarrow> E"
+    unfolding Pi_def
+    by simp
+
+  have pi': "(\<lambda>b. (?a b \<odot>\<^bsub>VS\<^esub> b) $ i) \<in> standard_basis_vec ` {..<n} \<rightarrow> E" proof
+    fix x
+    assume "x \<in> standard_basis_vec ` {..<n}"
+    then have "x \<in> standard_basis_n"
+      using standard_basis_n_def
+      by fastforce
+    then have "?a x \<in> E"
+      using pi
+      by blast
+    moreover have "\<one>\<^bsub>F\<^esub> \<in> E" "\<zero>\<^bsub>F\<^esub> \<in> E" by simp_all
+    then have "x \<in> V"
+      using standard_vec_in_v standard_basis_n_def \<open>x \<in> standard_basis_n\<close>
+      by force
+    ultimately have "?a x \<odot>\<^bsub>VS\<^esub> x \<in> V"
+      using induced_vs_vs.smult_closed
+      by simp
+    then show "(?a x \<odot>\<^bsub>VS\<^esub> x) $ i \<in> E" using assms by auto
+  qed
+
+  let ?g = "\<lambda>j. if i = j then ?a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>"
+  let ?f = "\<lambda>j. (?a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> (standard_basis_vec j)) $ i"
+  let ?h = "\<lambda>j. (standard_basis_vec i $ j) \<otimes>\<^bsub>F\<^esub> (v $ j)"
+
+  have "\<forall>j. ?g j \<in> E"
+    using \<open>\<forall>v. ?a v \<in> E\<close> \<open>\<zero>\<^bsub>F\<^esub> \<in> E\<close>
+    by metis
+  hence pi'': "?g \<in> {..<n} \<rightarrow> E"    
+    unfolding Pi_def
+    by simp
+
+  have dim_v: "dim_vec v = n" using assms by simp
+  have "{0..<n} = {..<n}"
+    by auto
+  hence sbv_inj: "inj_on standard_basis_vec {..<n}"
+    using inj_standard_basis by metis
+  hence eq_map: "\<And>j. j \<in> {..<n} \<Longrightarrow>
+    (?a (standard_basis_vec j) \<odot>\<^bsub>VS\<^esub> standard_basis_vec j) $ i =
+    (if i = j then ?a (standard_basis_vec j) else \<zero>\<^bsub>F\<^esub>)"
+    using standard_basis_mul_equiv[of _ i ?a] assms
+    by simp
+
+  have eq_scalar_prod: "\<And>j. j \<in> {0..<n} \<Longrightarrow> ?g j = ?h j"
+  proof -
+    fix j :: nat assume index: "j \<in> {0..<n}"
+    then show "?g j = ?h j"
+    proof (cases "j = i")
+      case True
+      hence "?g j = v $ i"
+        by simp
+      moreover from True have "?h j = (standard_basis_vec i $ i) \<otimes>\<^bsub>F\<^esub> (v $ i)"
+        by simp
+      moreover have "standard_basis_vec i $ i = \<one>\<^bsub>F\<^esub>"
+        unfolding standard_basis_vec_def
+        by (simp add: assms(1))
+      moreover have "\<one>\<^bsub>F\<^esub> \<otimes>\<^bsub>F\<^esub> (v $ i) = (v $ i)"
+        using assms
+        by simp
+      ultimately show ?thesis by simp
+    next
+      case False
+      hence "?g j = \<zero>\<^bsub>F\<^esub>"
+        by simp
+      moreover have "?h j = (standard_basis_vec i $ j) \<otimes>\<^bsub>F\<^esub> (v $ j)"
+        by simp
+      moreover have "standard_basis_vec i $ j = \<zero>\<^bsub>F\<^esub>"
+        unfolding standard_basis_vec_def 
+        using False index
+        by simp
+      moreover have "\<zero>\<^bsub>F\<^esub> \<otimes>\<^bsub>F\<^esub> (v $ j) = \<zero>\<^bsub>F\<^esub>"
+        using index assms
+        by simp
+      ultimately show ?thesis
+        by simp
+    qed
+  qed
+  
+  hence pi''': "?h \<in> {0..<n} \<rightarrow> E"
+    using pi''
+    unfolding Pi_def
+    by simp
+
+  from eq_map have "(\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (?a b \<odot>\<^bsub>VS\<^esub> b) $ i) = ?a (standard_basis_vec i)"
+    using finsum_standard_basis_entries[of _ ?a] fin assms
+    by simp
+  moreover have "?a (standard_basis_vec i) = v $ i"
+    by metis
+  moreover have 
+    "(\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_n. (?a b \<odot>\<^bsub>VS\<^esub> b) $ i) = 
+      (\<Oplus>\<^bsub>F\<^esub> b \<in> standard_basis_vec ` {..<n}. (?a b \<odot>\<^bsub>VS\<^esub> b) $ i)"
+    using standard_basis_n_def \<open>{0..<n} = {..<n}\<close>
+    by presburger
+  moreover have "...  = (\<Oplus>\<^bsub>F\<^esub> j \<in> {..<n}. ?f j)"
+    using abelian_monoid.finsum_reindex[
+            OF induced_vs_vs.module.R.abelian_monoid_axioms pi' sbv_inj] 
+    by satx
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {..<n}. ?g j)"
+    using eq_map 
+          abelian_monoid.finsum_cong'[OF induced_vs_vs.module.R.abelian_monoid_axioms, 
+            of "{..<n}" "{..<n}" ?g ?f] pi''
+    by presburger
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. ?g j)"
+    using \<open>{0..<n} = {..<n}\<close>
+    by metis
+  moreover have "... = (\<Oplus>\<^bsub>F\<^esub> j \<in> {0..<n}. ?h j)"
+    using eq_scalar_prod
+          abelian_monoid.finsum_cong'[OF induced_vs_vs.module.R.abelian_monoid_axioms, 
+            of "{0..<n}" "{0..<n}" ?h ?g, OF _ pi''']
+    by presburger
+  moreover have "... = field.scalar_prod F (standard_basis_vec i) v"
+    unfolding induced_vs_vs.scalar_prod_def
+    using dim_v
+    by simp
+  ultimately show ?thesis
+    by metis
+qed
+
+subsubsection \<open>The Standard Basis\<close>
 
 lemma induced_basis_n: "induced_vs_vs.basis standard_basis_n"
 proof -
@@ -762,7 +919,6 @@ proof -
     unfolding induced_vs_vs.basis_def
     by auto
 qed
-
 
 lemma induced_dim_n: "induced_vs_vs.dim = n"
 proof -

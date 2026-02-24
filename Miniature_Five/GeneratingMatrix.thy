@@ -15,6 +15,8 @@ definition (in linear_code) generating_matrix:: "'a mat \<Rightarrow> bool"
       \<and> dim_col G = n
       \<and> vectorspace.basis F CS (set (rows G))"
 
+typ "'x list"
+
 lemma (in linear_code) generating_matrix_exists:
   "\<exists>G :: 'a mat. generating_matrix G"
 proof -
@@ -33,13 +35,52 @@ proof -
     by simp
   ultimately have dim_col: "\<forall>b \<in> B. dim_vec b = n"
     by blast
-  have "card B = vectorspace.dim F CS"
+  have crd_B: "card B = vectorspace.dim F CS"
     using \<open>space.basis B\<close> \<open>finite B\<close>
     using space.dim_basis[of B]
     by simp
-  (* TODO: define matrix ?G with rows = vectors of B *)
+  from \<open>finite B\<close> have "\<exists>ls. set ls = B \<and> distinct ls"
+    using finite_distinct_list
+    by blast
+  then obtain ls :: "'a vec list" where "set ls = B" and "distinct ls"
+    by blast
+  hence in_B: "\<forall>i \<in> {0..<length ls}. (ls ! i) \<in> B"
+    by auto
+  let ?G = "mat (card B) n (\<lambda>(i,j). (ls ! i) $ j)"
+  have "dim_row ?G = card B"
+    by simp
+  have "length ls = card B"
+    using \<open>distinct ls\<close> \<open>set ls = B\<close> \<open>finite B\<close> distinct_card
+    by metis
+  hence "\<forall>i \<in> {0..<card B}. \<forall>j \<in> {0..<n}. row ?G i $ j = (ls ! i) $ j"
+    by simp
+  moreover have "\<forall>i \<in> {0..<card B}. dim_vec (row ?G i) = n"
+    by simp
+  moreover have "\<forall>i \<in> {0..<card B}. dim_vec (ls ! i) = n"
+    using in_B dim_col \<open>length ls = card B\<close>
+    by metis
+  ultimately have "\<forall>i \<in> {0..<card B}. row ?G i = ls ! i"
+    using eq_vecI[of _]
+    by auto
+  hence "rows ?G = ls"
+    using \<open>length ls = card B\<close> \<open>dim_row ?G = card B\<close> list_eq_iff_nth_eq[of "rows ?G" ls]
+    by simp
+  hence "set (rows ?G) = B"
+    using \<open>set ls = B\<close>
+    by simp
+  hence "vectorspace.basis F CS (set (rows ?G))"
+    using \<open>space.basis B\<close>
+    by simp
+  moreover have "dim_row ?G = (vectorspace.dim F CS)"
+    using crd_B
+    by simp
+  moreover have "dim_col ?G = n"
+    by simp
+  ultimately have "generating_matrix ?G"
+    unfolding generating_matrix_def
+    by simp
   thus "Ex generating_matrix"
-    sorry
+    by metis
 qed
 
 text \<open>The reference now claims that every linear code has a generating matrix
@@ -315,8 +356,8 @@ next
     unfolding orthogonal_def
     by simp
   moreover have "field.scalar_prod F (standard_basis_vec i) v = v $ i"
-    unfolding standard_basis_vec_def
-    sorry
+    using \<open>i \<in> {0..<n}\<close> \<open>v \<in> C\<close> ind.kn.standard_scalar_prod[of i v] codewords_words 
+    by auto
   ultimately show "False"
     using \<open>v $ i \<noteq> \<zero>\<^bsub>F\<^esub>\<close> 
     by argo
