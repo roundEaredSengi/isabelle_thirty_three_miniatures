@@ -207,6 +207,8 @@ qed
 lemma orthogonal_dim_lower_bound:
   "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) \<ge> n - m"
 proof -
+  have f_dim: "lin_map.W.fin_dim"
+    by (rule row_induced.fin_dim)
   have "vectorspace.dim F (code.VS\<lparr>carrier:=code.orthogonal_carrier\<rparr>) =
     lin_map.V.dim - vectorspace.dim F (lin_map.W.vs lin_map.imT)"
     using lin_map.rank_nullity_main[OF code.fin_dim] orthogonal_kernel
@@ -215,8 +217,9 @@ proof -
     using code.induced_dim_n
     by satx
   moreover have "vectorspace.dim F (lin_map.W.vs lin_map.imT) \<le> m"
-    using lin_map.imT_is_subspace m_def row_induced.induced_dim_n subspace.dim_le 
-    by fastforce
+    using lin_map.imT_is_subspace m_def row_induced.induced_dim_n 
+          subspace.dim_le[of F "lin_map.imT" RS, OF _ f_dim]
+    by metis
   ultimately show ?thesis
     by presburger
 qed
