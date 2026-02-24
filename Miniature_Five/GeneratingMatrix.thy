@@ -105,8 +105,8 @@ definition m :: nat where "m \<equiv> dim_row G"
 
 abbreviation RS where "RS \<equiv> induced_vs.VS F m"
 
-fun generator_hom :: "'a vec \<Rightarrow> 'a vec" where
-  "generator_hom v = field.mult_mat_vec F G v"
+definition generator_hom :: "'a vec \<Rightarrow> 'a vec" where
+  "generator_hom v \<equiv> field.mult_mat_vec F G v"
 
 interpretation row_induced: induced_vs F m
   by (rule local.code.induced_vs_axioms)
@@ -120,15 +120,153 @@ next
   show "vectorspace F RS"
     by (rule local.row_induced.vectorspace_VS)
 next
+  have row_closed: "\<And>i. i \<in> {0..<dim_row G} \<Longrightarrow> row G i \<in> code.ind.kn.V"
+  proof -
+    fix i
+    assume "i \<in> {0..<dim_row G}"
+    then have "row G i \<in> set (rows G)"
+      by (simp add: rows_def)
+    moreover have "(set (rows G)) \<subseteq> carrier code.CS"
+      using gen code.generating_matrix_def
+      using vectorspace.basis_def[OF code.code_space]
+      by algebra
+    ultimately show "row G i \<in> code.ind.kn.V"
+      using code.words_subs
+      by auto
+  qed
+
   show "mod_hom F code.VS RS generator_hom"
-    sorry
+  proof (unfold mod_hom_def, safe, unfold mod_hom_axioms_def)
+    show "module F code.ind.kn.VS"
+      using code.ind.kn.vectorspace_VS vectorspace_def
+      by blast
+  next
+    show "module F row_induced.VS"
+      using row_induced.vectorspace_VS vectorspace_def
+      by blast
+  next
+    have gen_hom_closed: "\<And>x. x \<in> code.V \<Longrightarrow> generator_hom x \<in> row_induced.V" proof -
+      fix x
+      assume "x \<in> code.V"
+
+      have "generator_hom x = field.mult_mat_vec F G x"
+        unfolding generator_hom_def
+        by presburger
+      also have "\<dots> = vec (dim_row G) (\<lambda>i. field.scalar_prod F (row G i) x)"
+        unfolding field.mult_mat_vec_def[OF code.field_F]
+        by presburger
+      moreover {
+        have "\<And>i. i \<in> {..<dim_row G} \<Longrightarrow> field.scalar_prod F (row G i) x \<in> row_induced.E"
+        proof -
+          fix i
+          assume "i \<in> {..<dim_row G}"
+          then have "row G i \<in> code.V" using row_closed by simp
+          then show "field.scalar_prod F (row G i) x \<in> code.E"
+            using \<open>x \<in> code.V\<close> field.scalar_prod_closed[OF code.field_F]
+            by simp
+        qed
+        then have "\<And>i. i \<in> {..<dim_row G} \<Longrightarrow> (vec (dim_row G) (\<lambda>i. field.scalar_prod F (row G i) x)) $ i \<in> row_induced.E"
+          by simp
+        then have "vec_set (vec (dim_row G) (\<lambda>i. field.scalar_prod F (row G i) x)) \<subseteq> row_induced.E"
+          using vec_set_def
+          by (metis dim_vec image_subsetI)
+      }
+      then have "vec (dim_row G) (\<lambda>i. field.scalar_prod F (row G i) x) \<in> row_induced.V"
+        using m_def by force
+      ultimately show "generator_hom x \<in> row_induced.V" by auto
+    qed
+
+
+    show "generator_hom \<in> module_hom F code.ind.kn.VS row_induced.VS"
+    proof (unfold module_hom_def, safe)
+      fix x
+      assume "x \<in> carrier code.ind.kn.VS"
+      then show "generator_hom x \<in> carrier row_induced.VS" using gen_hom_closed by auto
+    next
+      fix m1 m2
+      assume "m1 \<in> carrier code.VS" "m2 \<in> carrier code.VS"
+      then have assms: "m1 \<in> code.V" "m2 \<in> code.V" by simp_all
+
+      from assms have sum_closed: "(m1 \<oplus>\<^bsub>code.VS\<^esub> m2) \<in> code.V"
+        using code.addition_closed by auto
+
+      have "generator_hom (m1 \<oplus>\<^bsub>code.VS\<^esub> m2) = field.mult_mat_vec F G (m1 \<oplus>\<^bsub>code.VS\<^esub> m2)"
+        unfolding generator_hom_def by presburger
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. field.scalar_prod F (row G i) (m1 \<oplus>\<^bsub>code.VS\<^esub> m2))"
+        unfolding field.mult_mat_vec_def[OF code.field_F]
+        by metis
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. field.scalar_prod F (m1 \<oplus>\<^bsub>code.VS\<^esub> m2) (row G i))"
+        using field.scalar_prod_sym[OF code.field_F]
+        using sum_closed row_closed
+        by auto
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. (field.scalar_prod F m1 (row G i)) \<oplus>\<^bsub>F\<^esub> (field.scalar_prod F m2 (row G i)))"
+        using code.ind.kn.scalar_prod_add_linear
+        using row_closed assms
+        by auto
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. (field.scalar_prod F (row G i) m1) \<oplus>\<^bsub>F\<^esub> (field.scalar_prod F (row G i) m2))"
+        using field.scalar_prod_sym[OF code.field_F]
+        using assms row_closed
+        by auto
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. generator_hom m1 $ i \<oplus>\<^bsub>F\<^esub> generator_hom m2 $ i)"
+        unfolding generator_hom_def
+        unfolding field.mult_mat_vec_def[OF code.field_F]
+        by auto
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. generator_hom m1 $ i \<oplus>\<^bsub>F\<^esub> generator_hom m2 $ i)"
+        unfolding generator_hom_def
+        unfolding field.mult_mat_vec_def[OF code.field_F]
+        by auto
+      moreover have "\<dots> = generator_hom m1 \<oplus>\<^bsub>row_induced.VS\<^esub> generator_hom m2"
+        using gen_hom_closed assms
+        unfolding row_induced.addition_def
+        unfolding m_def
+        by simp
+      ultimately show "generator_hom (m1 \<oplus>\<^bsub>code.VS\<^esub> m2) = generator_hom m1 \<oplus>\<^bsub>row_induced.VS\<^esub> generator_hom m2"
+        by presburger
+    next
+      fix r m
+      assume "r \<in> row_induced.E" "m \<in> carrier code.VS"
+      then have assms: "r \<in> row_induced.E" "m \<in> code.V" by simp_all
+
+      from assms have scale_closed: "(r \<odot>\<^bsub>code.VS\<^esub> m) \<in> code.V"
+        using code.scaling_closed by auto
+
+      have "generator_hom (r \<odot>\<^bsub>code.VS\<^esub> m) = field.mult_mat_vec F G (r \<odot>\<^bsub>code.VS\<^esub> m)"
+        unfolding generator_hom_def by presburger
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. field.scalar_prod F (row G i) (r \<odot>\<^bsub>code.VS\<^esub> m))"
+        unfolding field.mult_mat_vec_def[OF code.field_F]
+        by metis
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. field.scalar_prod F (r \<odot>\<^bsub>code.VS\<^esub> m) (row G i))"
+        using field.scalar_prod_sym[OF code.field_F]
+        using scale_closed row_closed
+        by auto
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. r \<otimes>\<^bsub>F\<^esub> (field.scalar_prod F m (row G i)))"
+        using code.ind.kn.scalar_prod_smult_linear
+        using row_closed assms
+        by auto
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. r \<otimes>\<^bsub>F\<^esub> (field.scalar_prod F (row G i) m))"
+        using field.scalar_prod_sym[OF code.field_F]
+        using assms row_closed
+        by auto
+      moreover have "\<dots> = vec (dim_row G) (\<lambda>i. r \<otimes>\<^bsub>F\<^esub> generator_hom m $ i)"
+        unfolding generator_hom_def
+        unfolding field.mult_mat_vec_def[OF code.field_F]
+        by auto
+      moreover have "\<dots> = r \<odot>\<^bsub>row_induced.VS\<^esub> generator_hom m"
+        using gen_hom_closed assms
+        unfolding row_induced.scaling_def
+        unfolding m_def
+        by simp
+      ultimately show "generator_hom (r \<odot>\<^bsub>code.VS\<^esub> m) = r \<odot>\<^bsub>row_induced.VS\<^esub> generator_hom m"
+        by presburger
+    qed
+  qed
 qed
 
 subsection \<open>Orthogonal Carrier as the Kernel of the Generating Matrix\<close>
 
 lemma orthogonal_kernel:
   "code.orthogonal_carrier = lin_map.kerT"
-proof (unfold lin_map.ker_def, simp, safe)
+proof (unfold lin_map.ker_def, unfold generator_hom_def, simp, safe)
   fix v :: "'a vec"
   assume 
     dim: "n = dim_vec v" and 

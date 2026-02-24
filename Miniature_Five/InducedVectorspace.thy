@@ -1060,7 +1060,7 @@ subsection \<open>Standard Scalar Product Linearity\<close>
 
 lemmas field_finsum_suc = abelian_monoid.finsum_Suc[OF induced_vs_vs.module.R.abelian_monoid_axioms]
 
-lemma sclar_prod_smult_linear:
+lemma scalar_prod_smult_linear:
   assumes
     "\<alpha> \<in> E"
     "u \<in> V"
@@ -1311,7 +1311,7 @@ proof -
           have "orthogonal v w" using \<open>w \<in> W\<close> assms by auto
 
           have "field.scalar_prod K (c \<odot>\<^bsub>VS\<^esub> v) w = c \<otimes>\<^bsub>K\<^esub> field.scalar_prod K v w"
-            using sclar_prod_smult_linear assms \<open>w \<in> V\<close> by auto
+            using scalar_prod_smult_linear assms \<open>w \<in> V\<close> by auto
           also have "\<dots> = c \<otimes>\<^bsub>K\<^esub> \<zero>\<^bsub>K\<^esub>" using \<open>orthogonal v w\<close> orthogonal_def by simp
           also have "\<dots> = \<zero>\<^bsub>K\<^esub>"
             using assms
