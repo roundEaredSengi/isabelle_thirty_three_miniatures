@@ -7,6 +7,21 @@ section \<open>Additional Lemmas about Vector Spaces\<close>
 
 subsection \<open>Existence of a Subspace Basis\<close>
 
+text \<open>
+  We show that a linear subspace U of a finite-dimensional vector space V is also finite-dimensional.
+  For this, we prove the existence of a basis of the subspace as follows:
+
+    1) Any subset that is linearly independent in the subspace U is also linear independent in V.
+    2) There exists a maximal linearly independent subset of U whose span is contained in U.
+    3) For any linearly independent subset of U that does not generate U, 
+        we can find a larger linearly independent subset of U by inserting a vector.
+    4) The maximal linearly independent subset from 2) must generate 3) because we could otherwise
+        find a larger linearly independent subset according to 3), contradicting maximality.
+
+  There is a basis existence theorem "finite_basis_exists" in the AFP entry VectorSpace,
+  however, this is only shown for vector spaces that are already known to be finite-dimensional.
+\<close>
+
 lemma (in subspace) lin_indpt_sub_imp_lin_indpt_parent:
   fixes X :: "'c set"
   assumes "X \<subseteq> W" and "module.lin_indpt K (V\<lparr>carrier:=W\<rparr>) X"
@@ -190,8 +205,36 @@ qed
 
 lemma (in module) span_subset:
   fixes X :: "'c set"
-  shows "X \<subseteq> module.span K V X"
-  sorry
+  assumes "X \<subseteq> carrier M"
+  shows "X \<subseteq> module.span R M X"
+proof (safe)
+  fix x :: 'c
+  assume "x \<in> X"
+  let ?a = "\<lambda>y. if (x = y) then \<one>\<^bsub>R\<^esub> else \<zero>\<^bsub>R\<^esub>"
+  let ?A = "{x}"
+  have "lincomb ?a ?A = (?a x \<odot>\<^bsub>M\<^esub> x) \<oplus>\<^bsub>M\<^esub> lincomb ?a {}"
+    using lincomb_insert[of "{}" ?a x] \<open>x \<in> X\<close> assms
+    by auto  
+  moreover have "lincomb ?a {} = \<zero>\<^bsub>M\<^esub>"
+    by (rule lincomb_empty)
+  moreover have "?a x \<odot>\<^bsub>M\<^esub> x = x"
+    using \<open>x \<in> X\<close> assms
+    by auto
+  ultimately have "x = lincomb ?a ?A"
+    using \<open>x \<in> X\<close> assms
+    by auto
+  moreover have "?a \<in> ?A \<rightarrow> carrier R"
+    unfolding Pi_def
+    by simp
+  moreover have "finite ?A"
+    by simp
+  moreover have "?A \<subseteq> X"
+    using \<open>x \<in> X\<close>
+    by simp
+  ultimately show "x \<in> span X"
+    unfolding span_def
+    by blast
+qed
 
 lemma (in subspace) add_lin_indpt_vec:
   fixes X :: "'c set" 
@@ -326,18 +369,35 @@ proof -
     moreover have minus_rewrite: "\<ominus>\<^bsub>V\<^esub> (a w \<odot>\<^bsub>V\<^esub> w) = ((\<ominus>\<^bsub>K\<^esub> a w) \<odot>\<^bsub>V\<^esub> w)"
       using \<open>a w \<in> carrier K\<close> \<open>w \<in> W\<close>
       by (metis module.smult_l_minus ring_subset_carrier submod submodule.module submodule.subset)
-    ultimately have lincomb_w: "(\<ominus>\<^bsub>K\<^esub> a w) \<odot>\<^bsub>V\<^esub> w = module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w})"
+    ultimately have lincomb_w: "(\<ominus>\<^bsub>K\<^esub> a w) \<odot>\<^bsub>V\<^esub> w = module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A - {w})"
       by metis
   
     have "\<ominus>\<^bsub>K\<^esub> a w \<noteq> \<zero>\<^bsub>K\<^esub>"
     proof (rule ccontr)
-      assume "\<not> \<ominus>\<^bsub>K\<^esub> a w \<noteq> \<zero>\<^bsub>K\<^esub>"
-      hence neq_0: "\<ominus>\<^bsub>K\<^esub> a w = \<zero>\<^bsub>K\<^esub>"
+      assume nneq_0: "\<not> \<ominus>\<^bsub>K\<^esub> a w \<noteq> \<zero>\<^bsub>K\<^esub>"
+      interpret f: field K
+        using vs
+        by (rule VectorSpace.vectorspace.axioms(2))
+      have "a v \<in> carrier K"
+        using pi elt
+        by auto
+      hence "a v \<oplus>\<^bsub>K\<^esub> (\<ominus>\<^bsub>K\<^esub> a v) = \<zero>\<^bsub>K\<^esub>"
+        using group.r_inv[of "add_monoid K" "a v"]
+        by algebra
+      moreover have "\<ominus>\<^bsub>K\<^esub> a v \<in> carrier K"
+        using \<open>a v \<in> carrier K\<close>
+        by (rule f.a_inv_closed)
+      ultimately have "a v = \<ominus>\<^bsub>K\<^esub> (\<ominus>\<^bsub>K\<^esub> a v)"
+        using cring.sum_zero_eq_neg[of K "a v" "\<ominus>\<^bsub>K\<^esub> a v"] f.field_axioms \<open>a v \<in> carrier K\<close>
+        unfolding field_def domain_def
+        by satx
+      moreover have "\<ominus>\<^bsub>K\<^esub> \<zero>\<^bsub>K\<^esub> = \<zero>\<^bsub>K\<^esub>"
+        by algebra
+      ultimately have "\<ominus>\<^bsub>K\<^esub> a v \<noteq> \<zero>\<^bsub>K\<^esub>"
+        using nzero
+        by metis
+      moreover from nneq_0 have eq_0: "\<ominus>\<^bsub>K\<^esub> a w = \<zero>\<^bsub>K\<^esub>"
         by simp
-      moreover have "\<ominus>\<^bsub>K\<^esub> a v \<noteq> \<zero>\<^bsub>K\<^esub>"
-        using nzero vs
-        unfolding vectorspace_def
-        sorry
       ultimately have "w \<noteq> v" 
         by meson
       moreover have "\<forall>v \<in> carrier V. \<zero>\<^bsub>K\<^esub> \<odot>\<^bsub>V\<^esub> v = \<zero>\<^bsub>V\<^esub>"
@@ -345,7 +405,7 @@ proof -
         unfolding vectorspace_def module_def module_axioms_def
         by simp
       ultimately have "(\<ominus>\<^bsub>K\<^esub> a w) \<odot>\<^bsub>V\<^esub> w = \<zero>\<^bsub>V\<^esub>"
-        using \<open>w \<in> W\<close> submod neq_0
+        using \<open>w \<in> W\<close> submod eq_0
         unfolding LinearCombinations.submodule_def
         by auto
       hence "module.lincomb (V\<lparr>carrier:=W\<rparr>) a (A-{w}) = \<zero>\<^bsub>V\<^esub>"
