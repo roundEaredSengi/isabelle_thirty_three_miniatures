@@ -953,6 +953,27 @@ abbreviation orthogonal_carrier where
 end
 
 lemma (in induced_subspace) orthogonal_subspace: "induced_subspace K orthogonal_carrier n"
-  sorry
+proof -
+  have "subspace K orthogonal_carrier VS" proof -
+    have "submodule K orthogonal_carrier VS" proof -
+      have "module K VS"
+        using vectorspace_def vs by blast
+      moreover have "\<And>v w.  v \<in> orthogonal_carrier \<Longrightarrow> w \<in> orthogonal_carrier \<Longrightarrow> v \<oplus>\<^bsub>VS\<^esub> w \<in> orthogonal_carrier"
+        sorry
+      moreover have "W \<subseteq> V" using submod submodule_def[of K W VS] by simp
+      then have "kn.zero_vec \<in> orthogonal_carrier" using zero_orthogonal
+        using zero_vec_in_v by blast
+      then have "\<zero>\<^bsub>VS\<^esub> \<in> orthogonal_carrier" by auto
+      moreover have "\<And>c v. c \<in> carrier K \<Longrightarrow> v \<in> orthogonal_carrier \<Longrightarrow>  c \<odot>\<^bsub>VS\<^esub> v \<in> orthogonal_carrier"
+        sorry
+      ultimately show ?thesis unfolding submodule_def by auto
+    qed
+    then show ?thesis unfolding subspace_def using vs by satx
+  qed
+  then show "induced_subspace K orthogonal_carrier n"
+    using induced_subspace_axioms
+    unfolding induced_subspace_def
+    by satx
+qed
 
 end
