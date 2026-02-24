@@ -402,7 +402,7 @@ next
   moreover have "w \<in> code.V" using \<open>w \<in> C\<close> by (rule code.code.codewords_words)
   ultimately have 
     "lin_map.scalar_prod w v = (\<Oplus>\<^bsub>F\<^esub>z\<in>set (rows G). \<alpha> z \<otimes>\<^bsub>F\<^esub> lin_map.scalar_prod z v)"
-    using induced_vs.scalar_prod_lincomb[of F "set (rows G)" w n \<alpha> "set (rows G)" v] 
+    using induced_vs.scalar_prod_lincomb[of F "set (rows G)" w n \<alpha> v] 
           lincomb_in_induced_space
     by simp
   moreover have "... = (\<Oplus>\<^bsub>F\<^esub>z\<in>set (rows G). \<zero>\<^bsub>F\<^esub>)"

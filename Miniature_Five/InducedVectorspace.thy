@@ -1191,10 +1191,123 @@ qed
 
 lemma scalar_prod_lincomb:
   fixes X :: "'a vec set" and x :: "'a vec" and y :: "'a vec" and a :: "'a vec \<Rightarrow> 'a"
-  assumes "finite X" and "x = module.lincomb VS a A" and "X \<subseteq> V" and "y \<in> V" and "x \<in> V"
+  assumes "finite X" and "x = module.lincomb VS a X" and 
+          "X \<subseteq> V" and "y \<in> V" and "x \<in> V" and "a \<in> X \<rightarrow> E"
   shows
-    "field.scalar_prod F x y = (\<Oplus>\<^bsub>F\<^esub>z \<in> A. a z \<otimes>\<^bsub>F\<^esub> field.scalar_prod F z y)"
-  sorry
+    "field.scalar_prod F x y = (\<Oplus>\<^bsub>F\<^esub>z \<in> X. a z \<otimes>\<^bsub>F\<^esub> field.scalar_prod F z y)"
+  using assms
+proof (induction "card X" arbitrary: X x y a)
+  case 0
+
+  let ?f = "\<lambda>i. \<zero>\<^bsub>VS\<^esub> $ i \<otimes>\<^bsub>F\<^esub> y $ i"
+  let ?g = "\<lambda>i. \<zero>\<^bsub>F\<^esub>"
+  have eq_map: "\<And>i. i \<in> {0..<n} \<Longrightarrow> ?g i = ?f i"
+    using 0
+    unfolding zero_vec_def
+    by simp
+  have pi: "?g \<in> {0..<n} \<rightarrow> E" unfolding Pi_def by simp
+
+  from 0 have dim: "dim_vec y = n"
+    by simp
+  from 0 have "X = {}"
+    by simp
+  hence "x = \<zero>\<^bsub>VS\<^esub>"
+    using 0
+    by simp
+  hence "field.scalar_prod F x y = field.scalar_prod F \<zero>\<^bsub>VS\<^esub> y"
+    by simp
+  also have "... = (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<n}. \<zero>\<^bsub>VS\<^esub> $ i \<otimes>\<^bsub>F\<^esub> y $ i)"
+    unfolding field.scalar_prod_def[of F, OF field_F]
+    using dim
+    by metis
+  also have "... = (\<Oplus>\<^bsub>F\<^esub>i\<in>{0..<n}. \<zero>\<^bsub>F\<^esub>)"
+    using pi eq_map
+          abelian_monoid.finsum_cong'[OF induced_vs_vs.module.R.abelian_monoid_axioms, 
+            of "{0..<n}" "{0..<n}" ?g ?f]
+    by presburger
+  also have "... = \<zero>\<^bsub>F\<^esub>"
+    by simp
+  finally have "field.scalar_prod F x y = \<zero>\<^bsub>F\<^esub>"
+    by simp
+  also have "... = (\<Oplus>\<^bsub>F\<^esub>z \<in> X. a z \<otimes>\<^bsub>F\<^esub> field.scalar_prod F z y)"
+    using \<open>X = {}\<close>
+    by simp
+  finally show ?case by simp
+next
+  case (Suc k)
+
+  from Suc have dim: "dim_vec y = n"
+    by simp
+  from Suc have "card X > 0"
+    by presburger
+  hence "X \<noteq> {}"
+    by auto
+  then obtain x' :: "'a vec" where "x' \<in> X"
+    by blast
+  hence scale_elt: "a x' \<odot>\<^bsub>VS\<^esub> x' \<in> V"
+    using Suc induced_vs_vs.summands_valid
+    unfolding Pi_def
+    by auto
+  let ?scaled_scalar = "\<lambda>z. a z \<otimes>\<^bsub>F\<^esub> induced_vs_vs.scalar_prod z y"
+  have "\<forall>z \<in> X - {x'}. ?scaled_scalar z \<in> E"
+    using Suc(5) Suc(6) Suc(8) field.scalar_prod_closed[OF field_F, of _ y]
+    by blast
+  hence pi: "?scaled_scalar \<in> X - {x'} \<rightarrow> E"
+    unfolding Pi_def 
+    by simp
+  have "a x' \<in> E"
+    using Suc(8) \<open>x' \<in> X\<close>
+    by auto
+  have scaled_scalar_x': "a x' \<otimes>\<^bsub>F\<^esub> induced_vs_vs.scalar_prod x' y \<in> E"
+    using \<open>x' \<in> X\<close> Suc(5) Suc(8) Suc(6) field.scalar_prod_closed[OF field_F, of x' y]
+    unfolding Pi_def
+    by auto
+  have suc: "k = card (X - {x'})"
+    using Suc \<open>x' \<in> X\<close>
+    by simp
+  have fin: "finite (X - {x'})"
+    using Suc
+    by simp
+  have subs: "X - {x'} \<subseteq> carrier VS"
+    using Suc(5)
+    by auto
+  moreover have pi': "a \<in> X - {x'} \<rightarrow> E"
+    using Suc
+    unfolding Pi_def
+    by simp
+  ultimately have l_comb_elt: "module.lincomb VS a (X-{x'}) \<in> V"
+    using induced_vs_vs.lincomb_closed[of "X-{x'}" a]
+    by simp
+  hence "x = (a x' \<odot>\<^bsub>VS\<^esub> x') \<oplus>\<^bsub>VS\<^esub> module.lincomb VS a (X-{x'})"
+    using \<open>a x' \<in> E\<close> Suc subs \<open>x' \<in> X\<close>
+          induced_vs_vs.lincomb_del2[of X a x']
+    by simp
+  hence 
+    "field.scalar_prod F x y = 
+      field.scalar_prod F ((a x' \<odot>\<^bsub>VS\<^esub> x') \<oplus>\<^bsub>VS\<^esub> module.lincomb VS a (X-{x'})) y"
+    by simp
+  also have "... = field.scalar_prod F (a x' \<odot>\<^bsub>VS\<^esub> x') y \<oplus>\<^bsub>F\<^esub> 
+    field.scalar_prod F (module.lincomb VS a (X-{x'})) y"
+    using scale_elt l_comb_elt Suc(6)
+          scalar_prod_add_linear[of "a x' \<odot>\<^bsub>VS\<^esub> x'" "module.lincomb VS a (X-{x'})" y]
+    by satx
+  also have "... = field.scalar_prod F (a x' \<odot>\<^bsub>VS\<^esub> x') y \<oplus>\<^bsub>F\<^esub> 
+    (\<Oplus>\<^bsub>F\<^esub>z\<in>X-{x'}. a z \<otimes>\<^bsub>F\<^esub> induced_vs_vs.scalar_prod z y)"
+    using fin suc subs Suc(6) l_comb_elt pi' Suc(1)[of "X-{x'}" "module.lincomb VS a (X-{x'})" a y]
+    by simp
+  also have "... = (a x' \<otimes>\<^bsub>F\<^esub> field.scalar_prod F x' y) \<oplus>\<^bsub>F\<^esub>
+    (\<Oplus>\<^bsub>F\<^esub>z\<in>X-{x'}. a z \<otimes>\<^bsub>F\<^esub> induced_vs_vs.scalar_prod z y)"
+    using Suc(8) \<open>x' \<in> X\<close> Suc(5) Suc(6) sclar_prod_smult_linear[of "a x'" x' y]
+    unfolding Pi_def
+    by auto
+  also have "... = (\<Oplus>\<^bsub>F\<^esub>z\<in>X. a z \<otimes>\<^bsub>F\<^esub> induced_vs_vs.scalar_prod z y)"
+    using \<open>x' \<in> X\<close> fin pi scaled_scalar_x' abelian_monoid.finsum_insert[
+            OF induced_vs_vs.module.R.abelian_monoid_axioms, 
+            of "X-{x'}" x' "\<lambda>z. a z \<otimes>\<^bsub>F\<^esub> induced_vs_vs.scalar_prod z y"]
+    by (simp add: insert_absorb)
+  finally show ?case
+    by satx
+qed
 
 subsection \<open>Orthogonality in the Induced Vector Space Based on the Standard Scalar Product\<close>
 
