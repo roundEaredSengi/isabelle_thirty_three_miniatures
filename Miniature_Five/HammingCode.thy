@@ -280,8 +280,10 @@ proof (rule ccontr)
       unfolding hamming_distance_def
       by satx
     then obtain i where i: "\<zero>\<^bsub>CS\<^esub> $ i \<noteq> v $ i" "i \<in> {0..<m}"
-      by (metis (mono_tags, lifting) Min_in card.empty distinct_elems_card mem_Collect_eq zero_neq_one)
-    then have inz: "v $ i \<noteq> 0" unfolding VS zero_vec_def by auto
+      by (smt (verit, best) Min_in card.empty
+          distinct_elems_card mem_Collect_eq
+          zero_neq_one)
+    then have inz: "v $ i \<noteq> 0" unfolding zero_vec_def by auto
     have j_zero: "\<And> j. j \<in> {0..<m} - {i} \<Longrightarrow> 0 = v $ j" proof -
       fix j
       assume j: "j \<in> {0..<m} - {i}"
@@ -297,7 +299,7 @@ proof (rule ccontr)
           using is_singleton_iff_ex1 by fastforce
         then show False using j by blast
       qed
-      then show "0 = v $ j" unfolding VS zero_vec_def using j by auto
+      then show "0 = v $ j" unfolding zero_vec_def using j by auto
     qed
 
     have "\<forall>k \<in> {0..<n}. (nth_gf2_vec n (i+1) $ k) = 0" proof
@@ -335,7 +337,7 @@ proof (rule ccontr)
     moreover have "{i \<in> {0..<m}. \<zero>\<^bsub>CS\<^esub> $ i \<noteq> v $ i} = {i \<in> {0..<m}. v $ i \<noteq> \<zero>\<^bsub>CS\<^esub> $ i}"
       by metis
     then have "{i \<in> {0..<m}. \<zero>\<^bsub>CS\<^esub> $ i \<noteq> v $ i} = {i \<in> {0..<m}. v $ i \<noteq> 0}"
-      unfolding VS zero_vec_def
+      unfolding zero_vec_def
       by fastforce
     ultimately have card: "card {i \<in> {0..<m}. v$i \<noteq> 0} = 2"
       by argo
@@ -383,7 +385,7 @@ assume "\<not> minimum_distance \<ge> 3"
   moreover have "card C > 1" using code_def code_axioms by fastforce
   then have "\<exists> v \<in> C. v \<noteq> \<zero>\<^bsub>W\<^esub>"
     using distinct_elems_card
-    by metis
+    by (metis (lifting))
   then have "{hamming_distance \<zero>\<^bsub>W\<^esub> w |w. w \<in> C \<and> w \<noteq> \<zero>\<^bsub>W\<^esub>} \<noteq> {}" by blast
   ultimately obtain v where v_props: "hamming_distance \<zero>\<^bsub>W\<^esub> v < 3" "v \<in> C" "v \<noteq> \<zero>\<^bsub>W\<^esub>"
     using Min_in[of "{hamming_distance \<zero>\<^bsub>W\<^esub> w |w. w \<in> C \<and> w \<noteq> \<zero>\<^bsub>W\<^esub>}"] by auto
